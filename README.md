@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://user-images.githubusercontent.com/76937659/153705486-44e6c1b2-74fa-4d44-be1c-36c8fdb83331.gif"/>
 </p>
-<h2 align="center"> 𝐒𝐂𝐑𝐈𝐏𝐓 : ꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱 𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂࿐</h2>
+<h2 align="center">꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱 𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂࿐</h2>
 <p align="center">
   <img src="https://user-images.githubusercontent.com/76937659/153705486-44e6c1b2-74fa-4d44-be1c-36c8fdb83331.gif"/>
 </p>
