@@ -5,7 +5,6 @@
 # telegram   » https://t.me/R32WRT_STORE
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # R32WRTx TUNNELING
-
 NS=$( cat /etc/xray/dns )
 PUB=$( cat /etc/slowdns/server.pub )
 domain=$(cat /etc/xray/domain)
@@ -22,7 +21,7 @@ mv bot/* /usr/bin
 chmod +x /usr/bin/*
 rm -rf bot.zip
 clear
-wget https://raw.githubusercontent.com/gemilangvip/autoscpremi/main/bot/kyt.zip
+wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/bot/kyt.zip
 unzip kyt.zip
 pip3 install -r kyt/requirements.txt
 
