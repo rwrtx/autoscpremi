@@ -43,7 +43,7 @@ res1() {
     mv menu/* /usr/local/sbin
     chmod +x menu/enc/*
 	enc menu/enc/*
-    mv enc/* /usr/local/sbin
+    mv menu/enc/* /usr/local/sbin/enc
     #rm -rf menu
     rm -rf menu.zip
     rm -rf update.sh
