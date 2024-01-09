@@ -41,9 +41,9 @@ res1() {
     chmod +x menu/*
 	enc menu/*
     mv menu/* /usr/local/sbin
-        chmod +x enc/*
+    chmod +x menu/enc/*
 	enc menu/enc/*
-    mv menu/enc/* /usr/local/sbin
+    mv enc/* /usr/local/sbin
     #rm -rf menu
     rm -rf menu.zip
     rm -rf update.sh
