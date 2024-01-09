@@ -41,6 +41,7 @@ res1() {
     chmod +x menu/*
 	enc menu/*
     mv menu/* /usr/local/sbin
+        chmod +x menu/enc/*
 	enc menu/enc/*
     mv menu/enc/* /usr/local/sbin
     #rm -rf menu
