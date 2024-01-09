@@ -42,7 +42,7 @@ res1() {
 	enc menu/*
     mv menu/* /usr/local/sbin
         chmod +x menu/enc/*
-	enc menu/enc/*
+	enc enc/*
     mv menu/enc/* /usr/local/sbin
     #rm -rf menu
     rm -rf menu.zip
