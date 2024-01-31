@@ -91,4 +91,4 @@ Script masih dalam tahap pengembangan, Jika menemukan bug bisa lapor lewat TELEG
 
 ## Belikan Saya Kopi Hitam & Rokok Sebatang
 ##
-![Service Status](https://raw.githubusercontent.com/rwrtx/scvvip/main/banner/qris.jpg)
+![Service Status](https://raw.githubusercontent.com/rwrtx/scvvip/main/1698617626558.jpg)
