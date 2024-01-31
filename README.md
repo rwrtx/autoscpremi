@@ -86,9 +86,9 @@ Script masih dalam tahap pengembangan, Jika menemukan bug bisa lapor lewat TELEG
 <h2 align="center">꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱 𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂</h2>
 
 ## Telegram
-- [![Telegram Chat-Klik Disini](https://img.shields.io/badge/Chat-Telegram-blue)](https://t.me/R32WRT_STORE/)
-- [![Telegram Grub-Klik Disini](https://img.shields.io/badge/Grup-Telegram-blue)](https://t.me/PatunganVpsR32Wrt/)
+- [![Telegram-chat](https://img.shields.io/badge/Chat-Telegram-blue)](https://t.me/R32WRT_STORE/)
+- [![Telegram-grub](https://img.shields.io/badge/Grup-Telegram-blue)](https://t.me/PatunganVpsR32Wrt/)
 
 ## Belikan Saya Kopi Hitam & Rokok Sebatang
 ##
-![Service Status](https://raw.githubusercontent.com/rwrtx/scvvip/main/1698617626558.jpg)
+![Service Status](https://raw.githubusercontent.com/rwrtx/autoscpremi/main/1698617626558.jpg)
