@@ -18,6 +18,7 @@ CF_KEY=3c45413104a3c39f1db9dff20acb3a99d7610
 set -euo pipefail
 IP=$(wget -qO- icanhazip.com);
 echo "Updating DNS for ${dns}..."
+sleep 1
 echo "Updating DNS NS for ${NS_DOMAIN}..."
 ZONE=$(curl -sLX GET "https://api.cloudflare.com/client/v4/zones?name=${DOMAIN}&status=active" \
      -H "X-Auth-Email: ${CF_ID}" \
