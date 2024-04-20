@@ -45,13 +45,15 @@ RESULT=$(curl -sLX PUT "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_r
      -H "Content-Type: application/json" \
      --data '{"type":"A","name":"'${dns}'","content":"'${IP}'","ttl":120,"proxied":false}')
      --data '{"type":"NS","name":"'${NS_DOMAIN}'","content":"'${DAOMIN}'","proxied":false}'
+)
 echo "$dns" > /root/domain
 echo "$dns" > /root/scdomain
 echo "$dns" > /etc/xray/domain
 echo "$dns" > /etc/v2ray/domain
 echo "$dns" > /etc/xray/scdomain
 echo "IP=$dns" > /var/lib/kyt/ipvps.conf
-echo $NS_DOMAIN >/etc/xray/dns
+echo "$NS_DOMAIN" >/etc/xray/dns
 echo "Subdomain kamu adalah : $dns
+echo "NS domain kamu adalah : $NS_DOMAIN
 sleep 2
 rm -f /root/cf.sh
