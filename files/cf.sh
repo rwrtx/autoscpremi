@@ -10,7 +10,7 @@ echo ""
 read -p "Masukan Domain (contoh : ngentod-gaya69)" domen
 DOMAIN=r32wrtxtunneling.site
 DAOMIN=$(cat /etc/xray/domain
-#sub=$(</dev/urandom tr -dc a-z0-9 | head -c5)
+sub=$(</dev/urandom tr -dc a-z0-9 | head -c5)
 dns=${sub}.r32wrtxtunneling.site
 NS_DOMAIN=ns.${dns}
 CF_ID=amandafitrizharifa009@gmail.com
