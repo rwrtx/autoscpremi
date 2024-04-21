@@ -11,7 +11,7 @@ echo "Masukan Domain (contoh : ngentod-gaya69 ⬇️)"
 read -p domen
 DOMAIN=r32wrtxtunneling.site
 #sub=$(tr </dev/urandom -dc a-z0-9 | head -c4)
-SUB_DOMAIN=${sub}.r32wrtxtunneling.site
+dns=${sub}.r32wrtxtunneling.site
 CF_ID=amandafitrizharifa009@gmail.com
 CF_KEY=3c45413104a3c39f1db9dff20acb3a99d7610
 set -euo pipefail
