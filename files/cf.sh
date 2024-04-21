@@ -7,25 +7,21 @@ clear
 echo ""
 echo ""
 echo ""
-read -p "Masukan Domain (contoh : ngentod-gaya69)" domen
+read -p "Masukan Domain (contoh : ngentod-gaya69 =>)"  domen
 DOMAIN=r32wrtxtunneling.site
-DAOMIN=$(cat /etc/xray/domain
-sub=$(</dev/urandom tr -dc a-z0-9 | head -c5)
-dns=${sub}.r32wrtxtunneling.site
-NS_DOMAIN=ns.${dns}
+sub=$(tr </dev/urandom -dc a-z0-9 | head -c4)
+SUB_DOMAIN=${sub}.r32wrtxtunneling.site
 CF_ID=amandafitrizharifa009@gmail.com
 CF_KEY=3c45413104a3c39f1db9dff20acb3a99d7610
 set -euo pipefail
-IP=$(wget -qO- icanhazip.com);
-echo "Updating DNS for ${dns}..."
-sleep 1
-echo "Updating DNS NS for ${NS_DOMAIN}..."
+IP=$(wget -qO- ipinfo.io/ip)
+echo "Updating DNS for ${SUB_DOMAIN}..."
 ZONE=$(curl -sLX GET "https://api.cloudflare.com/client/v4/zones?name=${DOMAIN}&status=active" \
      -H "X-Auth-Email: ${CF_ID}" \
      -H "X-Auth-Key: ${CF_KEY}" \
      -H "Content-Type: application/json" | jq -r .result[0].id)
 
-RECORD=$(curl -sLX GET "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_records?name=${dns}" \
+RECORD=$(curl -sLX GET "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_records?name=${SUB_DOMAIN}" \
      -H "X-Auth-Email: ${CF_ID}" \
      -H "X-Auth-Key: ${CF_KEY}" \
      -H "Content-Type: application/json" | jq -r .result[0].id)
@@ -35,26 +31,15 @@ if [[ "${#RECORD}" -le 10 ]]; then
      -H "X-Auth-Email: ${CF_ID}" \
      -H "X-Auth-Key: ${CF_KEY}" \
      -H "Content-Type: application/json" \
-     --data '{"type":"A","name":"'${dns}'","content":"'${IP}'","ttl":120,"proxied":false}' | jq -r .result.id)
-     --data '{"type":"NS","name":"'${NS_DOMAIN}'","content":"'${DAOMIN}'","proxied":false}' | jq -r .result.id
-	)
+     --data '{"type":"A","name":"'${SUB_DOMAIN}'","content":"'${IP}'","proxied":false}' | jq -r .result.id)
 fi
 
 RESULT=$(curl -sLX PUT "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_records/${RECORD}" \
      -H "X-Auth-Email: ${CF_ID}" \
      -H "X-Auth-Key: ${CF_KEY}" \
      -H "Content-Type: application/json" \
-     --data '{"type":"A","name":"'${dns}'","content":"'${IP}'","ttl":120,"proxied":false}')
-     --data '{"type":"NS","name":"'${NS_DOMAIN}'","content":"'${DAOMIN}'","proxied":false}'
-)
-echo "$dns" > /root/domain
-echo "$dns" > /root/scdomain
-echo "$dns" > /etc/xray/domain
-echo "$dns" > /etc/v2ray/domain
-echo "$dns" > /etc/xray/scdomain
-echo "IP=$dns" > /var/lib/kyt/ipvps.conf
-echo "$NS_DOMAIN" >/etc/xray/dns
-echo "Subdomain kamu adalah : $dns
-echo "NS domain kamu adalah : $NS_DOMAIN
-sleep 2
+     --data '{"type":"A","name":"'${SUB_DOMAIN}'","content":"'${IP}'","proxied":false}')
+echo $SUB_DOMAIN >/etc/xray/domain
+echo "Subdomain kamu adalah : $SUB_DOMAIN"
+sleep 3
 rm -f /root/cf.sh
