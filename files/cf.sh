@@ -7,9 +7,10 @@ clear
 echo ""
 echo ""
 echo ""
-read -p "Masukan Domain (contoh : ngentod-gaya69 =>)"  domen
+echo "Masukan Domain (contoh : ngentod-gaya69 ⬇️)"
+read -p domen
 DOMAIN=r32wrtxtunneling.site
-sub=$(tr </dev/urandom -dc a-z0-9 | head -c4)
+#sub=$(tr </dev/urandom -dc a-z0-9 | head -c4)
 SUB_DOMAIN=${sub}.r32wrtxtunneling.site
 CF_ID=amandafitrizharifa009@gmail.com
 CF_KEY=3c45413104a3c39f1db9dff20acb3a99d7610
@@ -39,7 +40,12 @@ RESULT=$(curl -sLX PUT "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_r
      -H "X-Auth-Key: ${CF_KEY}" \
      -H "Content-Type: application/json" \
      --data '{"type":"A","name":"'${SUB_DOMAIN}'","content":"'${IP}'","proxied":false}')
-echo $SUB_DOMAIN >/etc/xray/domain
+echo "$SUB_DOMAIN" > /root/domain
+echo "$SUB_DOMAIN" > /root/scdomain
+echo "$SUB_DOMAIN" > /etc/xray/domain
+echo "$SUB_DOMAIN" > /etc/v2ray/domain
+echo "$SUB_DOMAIN" > /etc/xray/scdomain
+echo "IP=$SUB_DOMAIN" > /var/lib/kyt/ipvps.conf
 echo "Subdomain kamu adalah : $SUB_DOMAIN"
 sleep 3
 rm -f /root/cf.sh
