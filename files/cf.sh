@@ -7,8 +7,7 @@ clear
 echo ""
 echo ""
 echo ""
-echo "Masukan Domain (contoh : ngentod-gaya69 ⬇️)"
-read -p domen
+read -p "Masukan Domain (contoh : ngentod-gaya69 ⬇️)" domen
 DOMAIN=r32wrtxtunneling.site
 #sub=$(tr </dev/urandom -dc a-z0-9 | head -c4)
 dns=${sub}.r32wrtxtunneling.site
@@ -16,7 +15,7 @@ CF_ID=amandafitrizharifa009@gmail.com
 CF_KEY=3c45413104a3c39f1db9dff20acb3a99d7610
 set -euo pipefail
 IP=$(wget -qO- icanhazip.com);
-echo "Updating DNS for ${dns}..."
+echo "Updating DNS for ${dns}.."
 ZONE=$(curl -sLX GET "https://api.cloudflare.com/client/v4/zones?name=${DOMAIN}&status=active" \
      -H "X-Auth-Email: ${CF_ID}" \
      -H "X-Auth-Key: ${CF_KEY}" \
