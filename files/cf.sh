@@ -7,9 +7,9 @@ clear
 echo ""
 echo ""
 echo ""
-read -p "Masukan Domain (contoh : ngentod-gaya69 ⬇️)" domen
+sub=$(</dev/urandom tr -dc a-z0-9 | head -c3)
+read -rp "Input Domain Name. Example ( CONTOH : ngewe-gaya69 ) Bebas Mau Isi Apa: " -e sub
 DOMAIN=r32wrtxtunneling.site
-#sub=$(tr </dev/urandom -dc a-z0-9 | head -c4)
 dns=${sub}.r32wrtxtunneling.site
 CF_ID=amandafitrizharifa009@gmail.com
 CF_KEY=3c45413104a3c39f1db9dff20acb3a99d7610
