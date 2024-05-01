@@ -145,12 +145,14 @@ print_install "Membuat direktori xray"
     mkdir -p /etc/xray
     curl -s ifconfig.me > /etc/xray/ipvps
     touch /etc/xray/domain
+    touch /etc/xray/dns
     mkdir -p /var/log/xray
     chown www-data.www-data /var/log/xray
     chmod +x /var/log/xray
     touch /var/log/xray/access.log
     touch /var/log/xray/error.log
     mkdir -p /var/lib/kyt >/dev/null 2>&1
+    
 # // Ram Information
     while IFS=":" read -r a b; do
     case $a in
@@ -422,7 +424,7 @@ rm -rf /etc/vmess/.vmess.db
     mkdir -p /etc/user-create
     chmod +x /var/log/xray
     touch /etc/xray/domain
-	touch /etc/xray/dns
+    touch /etc/xray/dns
     touch /var/log/xray/access.log
     touch /var/log/xray/error.log
     touch /etc/vmess/.vmess.db
