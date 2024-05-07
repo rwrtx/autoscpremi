@@ -71,7 +71,7 @@ echo "$SUB_DOMAIN" > /etc/xray/domain
 echo "$SUB_DOMAIN" > /etc/v2ray/domain
 echo "$SUB_DOMAIN" > /root/scdomain
 echo "$SUB_DOMAIN" > /root/xray/scdomain
-echo "$NS_DOMAIN" >/etc/xray/dns
+echo "$NS_DOMAIN" > /etc/xray/dns
 echo -e "Done Record Domain= $SUB_DOMAIN"
 echo -e "Done Record NSDomain= $NS_DOMAIN"
 rm -rf cf
