@@ -75,4 +75,4 @@ echo "$NS_DOMAIN" > /etc/xray/dns
 echo -e "Done Record Domain= $SUB_DOMAIN"
 echo -e "Done Record NSDomain= $NS_DOMAIN"
 rm -rf cf
-sleep 1
+sleep 2
