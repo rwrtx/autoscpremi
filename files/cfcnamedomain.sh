@@ -11,11 +11,11 @@ rm -rf /root/xray/scdomain
 mkdir -p /root/xray
 clear
 #sub=$(</dev/urandom tr -dc a-z0-9 | head -c5)
-#read -rp "Input Domain Name. Example ( CONTOH : ngewe-gaya69 ) Bebas Mau Isi Apa: " -e subsl
-subsl=$(</dev/urandom tr -dc a-z0-9 | head -c5)
+read -rp "Input domain pointing wilcard Contoh *.awaldomainvps  :
+" -e subsl
+#subsl=$(</dev/urandom tr -dc a-z0-9 | head -c5)
 DOMAIN=r32wrtxtunneling.site
-SUB_DOMAIN=${sub}.r32wrtxtunneling.site
-CNAME_DOMAIN=*${subsl}.r32wrtxtunneling.site
+CNAME_DOMAIN=${subsl}.r32wrtxtunneling.site
 CF_ID=amandafitrizharifa009@gmail.com
 CF_KEY=3c45413104a3c39f1db9dff20acb3a99d7610
 set -euo pipefail
@@ -34,12 +34,12 @@ RECORD=$(curl -sLX POST "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_
 -H "X-Auth-Email: ${CF_ID}" \
 -H "X-Auth-Key: ${CF_KEY}" \
 -H "Content-Type: application/json" \
---data '{"type":"CNAME","name":"'${CNAME_DOMAIN}'","content":"'${SUB_DOMAIN}'","ttl":120,"proxied":false}' | jq -r .result.id)
+--data '{"type":"CNAME","name":"'${CNAME_DOMAIN}'","content":"'${DOMAIN}'","ttl":120,"proxied":false}' | jq -r .result.id)
 fi
 RESULT=$(curl -sLX PUT "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_records/${RECORD}" \
 -H "X-Auth-Email: ${CF_ID}" \
 -H "X-Auth-Key: ${CF_KEY}" \
 -H "Content-Type: application/json" \
---data '{"type":"CNAME","name":"'${CNAME_DOMAIN}'","content":"'${SUB_DOMAIN}'","ttl":120,"proxied":false}')
+--data '{"type":"CNAME","name":"'${CNAME_DOMAIN}'","content":"'${DOMAIN}'","ttl":120,"proxied":false}')
 echo $CNAME_DOMAIN >/etc/xray/cname
 rm -f /root/cfcnamedomain.sh
