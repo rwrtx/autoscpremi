@@ -11,8 +11,8 @@ rm -rf /root/xray/scdomain
 mkdir -p /root/xray
 clear
 #sub=$(</dev/urandom tr -dc a-z0-9 | head -c5)
-#read -rp "Input Domain Name. Example ( CONTOH : ngewe-gaya69 ) Bebas Mau Isi Apa: " -e sub
-subsl=$*.
+read -rp "Input Domain Name. Example ( CONTOH : ngewe-gaya69 ) Bebas Mau Isi Apa: " -e subsl
+#subsl=$*.
 DOMAIN=r32wrtxtunneling.site
 SUB_DOMAIN=${sub}.r32wrtxtunneling.site
 CNAME_DOMAIN=${subsl}${sub}.r32wrtxtunneling.site
