@@ -30,9 +30,15 @@ apt update && apt upgrade -y && update-grub && sleep 2 && reboot
 ```
 
 ## INSTALL SCRIPT 
-Masukkan perintah dibawah untuk menginstall Autoscript Premium by :
+Silahkan Pilih Dan Masukkan perintah dibawah untuk menginstall Autoscript Premium by :
 <h2 align="center">꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱 𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂</h2>
 
+Script 1 VPS SG Rekomendasi
+```
+apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/tunnell.sh && chmod +x tunnell.sh && ./tunnell.sh
+```
+
+Script 2 VPS ID Rekomendasi
 ```
 apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/main.sh && chmod +x main.sh && ./main.sh
 ```
