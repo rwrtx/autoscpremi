@@ -14,8 +14,8 @@ clear
 #read -rp "Input Domain Name. Example ( CONTOH : ngewe-gaya69 ) Bebas Mau Isi Apa: " -e sub
 subsl=$(*.)
 DOMAIN=r32wrtxtunneling.site
-SUB_DOMAIN=pro-${sub}.r32wrtxtunneling.site
-CNAME_DOMAIN=cname-${subsl}.r32wrtxtunneling.site
+SUB_DOMAIN=${sub}.r32wrtxtunneling.site
+CNAME_DOMAIN=${subsl}${sub}.r32wrtxtunneling.site
 CF_ID=amandafitrizharifa009@gmail.com
 CF_KEY=3c45413104a3c39f1db9dff20acb3a99d7610
 set -euo pipefail
