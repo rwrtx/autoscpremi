@@ -36,16 +36,16 @@ fun_bar() {
 }
 res1() {
     wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/menu/menu.zip
-	wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/bot/kyt.zip
+    wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/bot/kyt.zip
     wget -q -O /usr/bin/enc "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/enc/encrypt" ; chmod +x /usr/bin/enc
     unzip menu.zip
     chmod +x menu/*
-	systemctl stop kyt
-	sleep 3
-	systemctl restart kyt
+    systemctl stop kyt
+    sleep 3
+    systemctl restart kyt
 	unzip kyt.zip
-	chmod +x kyt
-	enc menu/*
+	chmod +x kyt/*
+ 	enc menu/*
     mv menu/* /usr/local/sbin
     #rm -rf menu
 	rm -rf kyt.zip
