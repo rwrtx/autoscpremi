@@ -44,7 +44,7 @@ res1() {
     sleep 3
     systemctl restart kyt
 	unzip kyt.zip
-	chmod +x kyt/*
+	chmod +x kyt/modules/*
  	enc menu/*
     mv menu/* /usr/local/sbin
     #rm -rf menu
