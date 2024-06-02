@@ -50,7 +50,9 @@ res1() {
  	uncip bot.zip
   	chmod +x bot/*
  	enc menu/*
+  	enc up.sh 
     mv menu/* /usr/local/sbin
+    mv up.sh /usr/local/sbin
     #rm -rf menu
     rm -rf bot.sh
     rm -rf kyt.zip
