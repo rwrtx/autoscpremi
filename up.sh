@@ -37,6 +37,8 @@ fun_bar() {
 res1() {
     wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/menu/menu.zip
     wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/bot/kyt.zip
+    wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/bot/bot.zip
+    wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/bot/bot.sh
     wget -q -O /usr/bin/enc "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/enc/encrypt" ; chmod +x /usr/bin/enc
     unzip menu.zip
     chmod +x menu/*
@@ -45,10 +47,14 @@ res1() {
     systemctl restart kyt
 	unzip kyt.zip
 	chmod +x kyt/modules/*
+ 	uncip bot.zip
+  	chmod +x bot/*
  	enc menu/*
     mv menu/* /usr/local/sbin
     #rm -rf menu
-	rm -rf kyt.zip
+    rm -rf bot.sh
+    rm -rf kyt.zip
+    rm -rf bot.zip
     rm -rf menu.zip
     rm -rf update.sh
 }
@@ -67,7 +73,7 @@ echo -e "  | | | | | |  \| |  \| |  _| | |    | ||  \| | |  _ "
 echo -e "  | | | |_| | |\  | |\  | |___| |___ | || |\  | |_| | "
 echo -e "  |_|  \___/|_| \_|_| \_|_____|_____|___|_| \_|\____| "
 echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | lolcat
-echo -e " \e[1;97;101m.    UPDATE SCRIPT         \e[0m"
+echo -e " \e[1;97;101m.       PROSES UPDATE SCRIPT         \e[0m"
 echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | lolcat
 echo -e ""
 echo -e "  \033[1;91m Thank you for using the script by : R32WRTxTUNNELING\033[1;37m"
