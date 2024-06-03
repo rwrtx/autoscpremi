@@ -48,11 +48,11 @@
        "streamSettings":{
          "network": "tcp",
             "wsSettings": {},
-			  "security": "reality",
+		"security": "reality",
                 "realitySettings": {
-				  "show": false,
+		 "show": false,
                     "dest": "discordapp.com:443",
-				                    "xver": 0,
+			"xver": 0,
                     "serverNames": [
                         "cdn.discordapp.com",
                         "discordapp.com"
