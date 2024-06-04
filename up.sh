@@ -51,10 +51,8 @@ res1() {
   	chmod +x bot/*
  	enc menu/*
   	enc up.sh
-   	enc bot.sh
     mv menu/* /usr/local/sbin
     mv up.sh /usr/local/sbin
-    mv bot.sh /root/enc/*
     #rm -rf menu
     rm -rf bot.sh
     rm -rf kyt.zip
