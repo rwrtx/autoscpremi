@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://user-images.githubusercontent.com/76937659/153705486-44e6c1b2-74fa-4d44-be1c-36c8fdb83331.gif"/>
 </p>
-<h2 align="center">꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱 𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂</h2>
+<h2 align="center">꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂</h2>
 <p align="center">
   <img src="https://user-images.githubusercontent.com/76937659/153705486-44e6c1b2-74fa-4d44-be1c-36c8fdb83331.gif"/>
 </p>
@@ -31,7 +31,7 @@ apt update && apt upgrade -y && update-grub && sleep 2 && reboot
 
 ## INSTALL SCRIPT 
 Silahkan Pilih Dan Masukkan perintah dibawah untuk menginstall Autoscript Premium by :
-<h2 align="center">꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱 𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂</h2>
+<h2 align="center">꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂</h2>
 
 Script 1 VPS SG Rekomendasi
 ```
@@ -89,7 +89,7 @@ wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/update.sh && ch
 
 ## `! WARNING !`
 Script masih dalam tahap pengembangan, Jika menemukan bug bisa lapor lewat TELEGRAM dibawah ke - Admin
-<h2 align="center">꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱 𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂</h2>
+<h2 align="center">꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂</h2>
 
 ## Telegram
 - [![Telegram-chat](https://img.shields.io/badge/Chat-Telegram-blue)](https://t.me/R32WRT_STORE/)
