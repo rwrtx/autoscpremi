@@ -6,7 +6,8 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # R32WRTx TUNNELING
 NS=$( cat /etc/xray/dns )
-PUB=$( cat /etc/slowdns/server.pub )
+PUB="7fbd1f8aa0abfe15a7903e837f78aba39cf61d36f183bd604daa2fe4ef3b7b59"
+#PUB=$( cat /etc/slowdns/server.pub )
 domain=$(cat /etc/xray/domain)
 #color
 grenbo="\e[92;1m"
@@ -69,8 +70,8 @@ echo -e "━━━━━━━━━━━━━━━━━━━━━━━�
 echo "Token Bot      : $bottoken"
 echo "Admin          : $admin"
 echo "Domain         : $domain"
-# echo "Pub            : $PUB"
-# echo "Host           : $NS"
+echo "Pub            : $PUB"
+echo "Host           : $NS"
 echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Setting Bot Success!"
 sleep 2
