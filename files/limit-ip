@@ -6,6 +6,20 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # R32WRTx TUNNELING
 
+LOCK_FILE="/tmp/multi_login_lock"
+
+function is_locked() {
+    [[ -e "$LOCK_FILE" ]]
+}
+
+function lock() {
+    touch "$LOCK_FILE"
+}
+
+function unlock() {
+    rm -f "$LOCK_FILE"
+}
+
 function send_log(){
 CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
 KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
@@ -15,16 +29,24 @@ TEXT="
 <code>────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
 <code>────────────────────</code>
-<code>Username  : </code><code>$user</code>
-<code>Limit Ip  : </code><code>$iplimit</code>
+<code>Username    : </code><code>$user</code>
+<code>Limit Ip    : </code><code>$iplimit</code>
+<code>Login Ip    : </code><code>${cekcek}</code>
 <code>────────────────────</code>
 "
 curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
 function vmip(){
 #LIMITVMESSIP
-echo -n > /var/log/xray/access.log
-sleep 1
+    if is_locked; then
+        echo "Akun terkunci. Tunggu 15 menit."
+        exit 0
+    fi
+
+    lock
+
+    echo -n > /var/log/xray/access.log
+    sleep 440
 data=( `ls /etc/kyt/limit/vmess/ip`);
 #Decrypted By YADDY D PHREAKER
     for user in "${data[@]}"
@@ -45,11 +67,20 @@ data=( `ls /etc/kyt/limit/vmess/ip`);
         fi
         sleep 0.1
     done
+    sleep 900  # Tidur selama 15 menit
+    unlock
 }
 function vlip(){
 #LIMITVLESSIP
-echo -n > /var/log/xray/access.log
-sleep 1
+    if is_locked; then
+        echo "Akun terkunci. Tunggu 15 menit."
+        exit 0
+    fi
+
+    lock
+
+    echo -n > /var/log/xray/access.log
+    sleep 440
 data=( `ls /etc/kyt/limit/vless/ip`);
 #Decrypted By YADDY D PHREAKER
     for user in "${data[@]}"
@@ -70,11 +101,20 @@ data=( `ls /etc/kyt/limit/vless/ip`);
         fi
         sleep 0.1
     done
+    sleep 900  # Tidur selama 15 menit
+    unlock
 }
 function trip(){
 #LIMITIPTROJAN
-echo -n > /var/log/xray/access.log
-sleep 1
+    if is_locked; then
+        echo "Akun terkunci. Tunggu 15 menit."
+        exit 0
+    fi
+
+    lock
+
+    echo -n > /var/log/xray/access.log
+    sleep 440
 data=( `ls /etc/kyt/limit/trojan/ip`);
 #Decrypted By YADDY D PHREAKER
     for user in "${data[@]}"
@@ -95,6 +135,8 @@ data=( `ls /etc/kyt/limit/trojan/ip`);
         fi
         sleep 0.1
     done
+    sleep 900  # Tidur selama 15 menit
+    unlock
 }
 
 if [[ ${1} == "vmip" ]]; then
