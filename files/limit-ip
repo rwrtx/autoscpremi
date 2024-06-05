@@ -1,10 +1,4 @@
 #!/bin/bash
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# System Request : Debian 9+/Ubuntu 18.04+/20+
-# Develovers » R32WRT_STORE
-# telegram   » https://t.me/R32WRT_STORE
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# R32WRTx TUNNELING
 
 LOCK_FILE="/tmp/multi_login_lock"
 
@@ -20,21 +14,34 @@ function unlock() {
     rm -f "$LOCK_FILE"
 }
 
+# Kunci akun selama 15 menit
+sleep 900
+
 function send_log(){
-CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
-KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
+CHATID=$(grep -E "^#bot# " "/etc/Kyt/bot/.bot.db" | cut -d ' ' -f 3)
+KEY=$(grep -E "^#bot# " "/etc/Kyt/bot/.bot.db" | cut -d ' ' -f 2)
 TIME="10"
 URL="https://api.telegram.org/bot$KEY/sendMessage"
 TEXT="
 <code>────────────────────</code>
-<b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
+<b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
 <code>────────────────────</code>
-<code>Username    : </code><code>$user</code>
-<code>Limit Ip    : </code><code>$iplimit</code>
+<code>Username  : </code><code>$user</code>
+<code>Limit Ip    : </code><code>${iplimit}</code>
 <code>Login Ip    : </code><code>${cekcek}</code>
 <code>────────────────────</code>
 "
 curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+}
+
+function activate_account(){
+  local user="$1"
+  local exp="$2"
+  
+  # Tambahkan kembali konfigurasi akun setelah 15 menit
+  # Sesuaikan dengan logika penyimpanan konfigurasi akun Anda
+  echo "### $user $exp" >> /etc/xray/config.json
+  systemctl restart xray >> /dev/null 2>&1
 }
 function vmip(){
 #LIMITVMESSIP
@@ -62,13 +69,15 @@ data=( `ls /etc/kyt/limit/vmess/ip`);
                   jum2=$(cat /tmp/ipvmess.txt | wc -l)
                   rm -rf /etc/kyt/limit/vmess/ip/$user
                   send_log
-                else
-            echo ""
-        fi
-        sleep 0.1
-    done
+
     sleep 900  # Tidur selama 15 menit
     unlock
+	activate_account "$user" "$exp" #Panggil Akun
+    else
+      echo ""
+    fi
+    sleep 0.1
+  done		  
 }
 function vlip(){
 #LIMITVLESSIP
@@ -96,13 +105,15 @@ data=( `ls /etc/kyt/limit/vless/ip`);
                   jum2=$(cat /tmp/ipvless.txt | wc -l)
                   rm -rf /etc/kyt/limit/vless/ip/$user
                   send_log
-                else
-            echo ""
-        fi
-        sleep 0.1
-    done
+
     sleep 900  # Tidur selama 15 menit
     unlock
+	activate_account "$user" "$exp" #Panggil Akun
+    else
+      echo ""
+    fi
+    sleep 0.1
+  done		  
 }
 function trip(){
 #LIMITIPTROJAN
@@ -130,13 +141,16 @@ data=( `ls /etc/kyt/limit/trojan/ip`);
                   jum2=$(cat /tmp/iptrojan.txt | wc -l)
                   rm -rf /etc/kyt/limit/trojan/ip/$user
                   send_log
-                else
-            echo ""
-        fi
-        sleep 0.1
-    done
+
     sleep 900  # Tidur selama 15 menit
     unlock
+
+	activate_account "$user" "$exp" #Panggil Akun
+    else
+      echo ""
+    fi
+    sleep 0.1
+  done		  
 }
 
 if [[ ${1} == "vmip" ]]; then
