@@ -51,8 +51,10 @@ res1() {
   	chmod +x bot/*
  	enc menu/*
   	enc up.sh
+   	enc repoid1-setup.sh
     mv menu/* /usr/local/sbin
     mv up.sh /usr/local/sbin
+    mv repoid1-setup.sh /usr/local/sbin
     #rm -rf menu
     rm -rf bot.sh
     rm -rf kyt.zip
