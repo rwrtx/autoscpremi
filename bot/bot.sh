@@ -5,59 +5,6 @@
 # telegram       » https://t.me/R32WRT_STORE
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # R32WRTx TUNNELING
-dateFromServer=$(curl -v --insecure --silent https://google.com/ 2>&1 | grep Date | sed -e 's/< Date: //')
-biji=`date +"%Y-%m-%d" -d "$dateFromServer"`
-red() { echo -e "\\033[32;1m${*}\\033[0m"; }
-clear
-fun_bar() {
-    CMD[0]="$1"
-    CMD[1]="$2"
-    (
-        [[ -e $HOME/fim ]] && rm $HOME/fim
-        ${CMD[0]} -y >/dev/null 2>&1
-        ${CMD[1]} -y >/dev/null 2>&1
-        touch $HOME/fim
-    ) >/dev/null 2>&1 &
-    tput civis
-    echo -ne "  \033[0;33mPlease Wait Loading \033[1;37m- \033[0;33m["
-    while true; do
-        for ((i = 0; i < 18; i++)); do
-            echo -ne "\033[0;32m#"
-            sleep 0.1s
-        done
-        [[ -e $HOME/fim ]] && rm $HOME/fim && break
-        echo -e "\033[0;33m]"
-        sleep 1s
-        tput cuu1
-        tput dl1
-        echo -ne "  \033[0;33mPlease Wait Loading \033[1;37m- \033[0;33m["
-    done
-    echo -e "\033[0;33m]\033[1;37m -\033[1;32m OK !\033[1;37m"
-    tput cnorm
-}
-res1() {
-    cd /root
-  	rm -rf bot.sh
-    rm -rf kyt.sh
-    cd /usr/bin
-    rm -rf kyt
-    rm -rf kyt.zip
-    rm -rf bot
-    rm -rf bot.zip
-    rm -rf bot-backup
-    rm -rf bot-cek-login-ssh
-    rm -rf bot-cek-ss
-    rm -rf bot-cek-tr
-    rm -rf bot-cek-vless
-    rm -rf bot-cek-ws
-    rm -rf bot-member-ssh
-    rm -rf setting.py
-    rm -rf bot-restore
-    rm -rf bot-vps-info
-}
-clear
-
-#!/bin/bash
 NS=$( cat /etc/xray/dns )
 PUB=$( cat /etc/slowdns/server.pub )
 domain=$(cat /etc/xray/domain)
