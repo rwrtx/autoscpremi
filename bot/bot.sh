@@ -56,6 +56,8 @@ res1() {
     rm -rf bot-vps-info
 }
 clear
+
+#!/bin/bash
 NS=$( cat /etc/xray/dns )
 PUB=$( cat /etc/slowdns/server.pub )
 domain=$(cat /etc/xray/domain)
@@ -139,4 +141,4 @@ clear
 
 echo "Installations complete, type /menu on your bot"
 read -p "Press Enter Back To menu"
-menu
+mbot-panel
