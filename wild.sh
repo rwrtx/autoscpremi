@@ -2,11 +2,11 @@
 
 # Specify where we will install
 # the xip.io certificate
-SSL_DIR="/etc/ssl/xip.io"
+SSL_DIR="/etc/ssl/r32wrtxtunneling.site"
 
 # Set the wildcarded domain
 # we want to use
-DOMAIN="*.xip.io"
+DOMAIN="*.r32wrtxtunneling.site"
 
 # A blank passphrase
 PASSPHRASE=""
