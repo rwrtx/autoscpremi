@@ -1,106 +1,152 @@
 #!/bin/bash
 
+# Fungsi untuk mengirimkan notifikasi log ke Telegram
 function send_log(){
-CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
-KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
-TIME="10"
-URL="https://api.telegram.org/bot$KEY/sendMessage"
-TEXT="
+    CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
+    KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
+    TIME="10"
+    URL="https://api.telegram.org/bot$KEY/sendMessage"
+    TEXT="
 <code>────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
 <code>────────────────────</code>
 <code>Username  : </code><code>$user</code>
 <code>Limit Ip  : </code><code>${iplimit}</code>
 <code>Login Ip  : </code><code>${cekcek}</code>
-<code>Ip        : </code><code>${data}</code>
+<code>Ip        : </code><code>${ehh}</code>
 <code>────────────────────</code>
 "
-curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+    curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
+
+# Fungsi untuk mengunci IP
+function lock_ip() {
+    ip=$1
+    iptables -A INPUT -s $ip -j DROP
+}
+
+# Fungsi untuk membuka kunci IP
+function unlock_ip() {
+    ip=$1
+    iptables -D INPUT -s $ip -j DROP
+}
+
+# Fungsi untuk memproses VMESS
 function vmip(){
-#LIMITVMESSIP
-echo -n > /var/log/xray/access.log
-sleep 440
-data=( `ls /etc/kyt/limit/vmess/ip`);
-#Decrypted By YADDY D PHREAKER
-    for user in "${data[@]}"
-    do
+    echo -n > /var/log/xray/access.log
+    sleep 440
+    data=( $(ls /etc/kyt/limit/vmess/ip) )
+
+    for user in "${data[@]}"; do
         iplimit=$(cat /etc/kyt/limit/vmess/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq);
-        cekcek=$(echo -e "$ehh" | wc -l);
+        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        cekcek=$(echo -e "$ehh" | wc -l)
+
         if [[ $cekcek -gt $iplimit ]]; then
             exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-                  sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
-                  sed -i "/^### $user $exp/d" /etc/vmess/.vmess.db
-                  systemctl restart xray >> /dev/null 2>&1
-                  jum2=$(cat /tmp/ipvmess.txt | wc -l)
-                  rm -rf /etc/kyt/limit/vmess/ip/$user
-                  send_log
-                else
-            echo ""
+            sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
+            sed -i "/^### $user $exp/d" /etc/vmess/.vmess.db
+            systemctl restart xray >> /dev/null 2>&1
+            for ip in $ehh; do
+                lock_ip $ip
+                echo $ip >> /tmp/locked_ips.txt
+            done
+            send_log
         fi
         sleep 0.1
     done
+
+    # Tunggu 15 menit sebelum membuka kunci IP
+    sleep 900
+
+    # Membuka kunci semua IP yang dikunci sebelumnya
+    while IFS= read -r ip; do
+        unlock_ip $ip
+    done < /tmp/locked_ips.txt
+
+    # Hapus file sementara
+    rm /tmp/locked_ips.txt
 }
+
+# Fungsi untuk memproses VLESS
 function vlip(){
-#LIMITVLESSIP
-echo -n > /var/log/xray/access.log
-sleep 440
-data=( `ls /etc/kyt/limit/vless/ip`);
-#Decrypted By YADDY D PHREAKER
-    for user in "${data[@]}"
-    do
+    echo -n > /var/log/xray/access.log
+    sleep 440
+    data=( $(ls /etc/kyt/limit/vless/ip) )
+
+    for user in "${data[@]}"; do
         iplimit=$(cat /etc/kyt/limit/vless/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq);
-        cekcek=$(echo -e "$ehh" | wc -l);
+        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        cekcek=$(echo -e "$ehh" | wc -l)
+
         if [[ $cekcek -gt $iplimit ]]; then
             exp=$(grep -w "^#& $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-                  sed -i "/^#& $user $exp/,/^},{/d" /etc/xray/config.json
-                  sed -i "/^### $user $exp/d" /etc/vless/.vless.db
-                  systemctl restart xray >> /dev/null 2>&1
-                  jum2=$(cat /tmp/ipvless.txt | wc -l)
-                  rm -rf /etc/kyt/limit/vless/ip/$user
-                  send_log
-                else
-            echo ""
+            sed -i "/^#& $user $exp/,/^},{/d" /etc/xray/config.json
+            sed -i "/^### $user $exp/d" /etc/vless/.vless.db
+            systemctl restart xray >> /dev/null 2>&1
+            for ip in $ehh; do
+                lock_ip $ip
+                echo $ip >> /tmp/locked_ips.txt
+            done
+            send_log
         fi
         sleep 0.1
     done
+
+    # Tunggu 15 menit sebelum membuka kunci IP
+    sleep 900
+
+    # Membuka kunci semua IP yang dikunci sebelumnya
+    while IFS= read -r ip; do
+        unlock_ip $ip
+    done < /tmp/locked_ips.txt
+
+    # Hapus file sementara
+    rm /tmp/locked_ips.txt
 }
+
+# Fungsi untuk memproses TROJAN
 function trip(){
-#LIMITIPTROJAN
-echo -n > /var/log/xray/access.log
-sleep 440
-data=( `ls /etc/kyt/limit/trojan/ip`);
-#Decrypted By YADDY D PHREAKER
-    for user in "${data[@]}"
-    do
+    echo -n > /var/log/xray/access.log
+    sleep 440
+    data=( $(ls /etc/kyt/limit/trojan/ip) )
+
+    for user in "${data[@]}"; do
         iplimit=$(cat /etc/kyt/limit/trojan/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq);
-        cekcek=$(echo -e "$ehh" | wc -l);
+        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        cekcek=$(echo -e "$ehh" | wc -l)
+
         if [[ $cekcek -gt $iplimit ]]; then
             exp=$(grep -w "^#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-                  sed -i "/^#! $user $exp/,/^},{/d" /etc/xray/config.json
-                  sed -i "/^### $user $exp/d" /etc/trojan/.trojan.db
-                  systemctl restart xray >> /dev/null 2>&1
-                  jum2=$(cat /tmp/iptrojan.txt | wc -l)
-                  rm -rf /etc/kyt/limit/trojan/ip/$user
-                  send_log
-                else
-            echo ""
+            sed -i "/^#! $user $exp/,/^},{/d" /etc/xray/config.json
+            sed -i "/^### $user $exp/d" /etc/trojan/.trojan.db
+            systemctl restart xray >> /dev/null 2>&1
+            for ip in $ehh; do
+                lock_ip $ip
+                echo $ip >> /tmp/locked_ips.txt
+            done
+            send_log
         fi
         sleep 0.1
     done
+
+    # Tunggu 15 menit sebelum membuka kunci IP
+    sleep 900
+
+    # Membuka kunci semua IP yang dikunci sebelumnya
+    while IFS= read -r ip; do
+        unlock_ip $ip
+    done < /tmp/locked_ips.txt
+
+    # Hapus file sementara
+    rm /tmp/locked_ips.txt
 }
 
+# Menjalankan fungsi sesuai dengan parameter yang diberikan
 if [[ ${1} == "vmip" ]]; then
-vmip
+    vmip
 elif [[ ${1} == "vlip" ]]; then
-vlip
+    vlip
 elif [[ ${1} == "trip" ]]; then
-trip
+    trip
 fi
-
-
-
-
