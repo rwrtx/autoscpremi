@@ -53,7 +53,7 @@ function unlock_ips() {
 
 function vmip(){
     echo -n > /var/log/xray/access.log
-    sleep 440
+    sleep 60  # Mengubah waktu tunggu menjadi 1 menit
     data=( `ls /etc/kyt/limit/vmess/ip`)
     unlock_ips  # Membuka kunci IP yang sudah melewati waktu penguncian
     
@@ -74,7 +74,7 @@ function vmip(){
 
 function vlip(){
     echo -n > /var/log/xray/access.log
-    sleep 440
+    sleep 60  # Mengubah waktu tunggu menjadi 1 menit
     data=( `ls /etc/kyt/limit/vless/ip`)
     unlock_ips  # Membuka kunci IP yang sudah melewati waktu penguncian
     
@@ -95,7 +95,7 @@ function vlip(){
 
 function trip(){
     echo -n > /var/log/xray/access.log
-    sleep 440
+    sleep 60  # Mengubah waktu tunggu menjadi 1 menit
     data=( `ls /etc/kyt/limit/trojan/ip`)
     unlock_ips  # Membuka kunci IP yang sudah melewati waktu penguncian
     
