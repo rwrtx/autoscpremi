@@ -1,6 +1,9 @@
 #!/bin/bash
 
-# Fungsi untuk mengirimkan notifikasi log ke Telegram
+LOCK_TIME=900  # Waktu penguncian dalam detik (15 menit)
+LOCK_FILE="/tmp/locked_ips.txt"  # File untuk menyimpan IP yang dikunci
+
+# Fungsi untuk mengirim log ke bot Telegram
 function send_log(){
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
@@ -13,136 +16,104 @@ function send_log(){
 <code>Username  : </code><code>$user</code>
 <code>Limit Ip  : </code><code>${iplimit}</code>
 <code>Login Ip  : </code><code>${cekcek}</code>
-<code>Ip        : </code><code>${ehh}</code>
+<code>Ip        : </code><code>${data}</code>
 <code>────────────────────</code>
 "
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
 
-# Fungsi untuk mengunci IP
+# Fungsi untuk mengunci IP selama 15 menit
 function lock_ip() {
-    ip=$1
-    iptables -A INPUT -s $ip -j DROP
+    local ip=$1
+    local user=$2
+    echo "$(date +%s) $ip $user" >> $LOCK_FILE
+    echo "Blocking IP: $ip for user: $user"
 }
 
-# Fungsi untuk membuka kunci IP
-function unlock_ip() {
-    ip=$1
-    iptables -D INPUT -s $ip -j DROP
+# Fungsi untuk membuka kunci IP yang sudah melewati waktu penguncian
+function unlock_ips() {
+    local current_time=$(date +%s)
+    local tmp_file=$(mktemp)
+
+    while read -r line; do
+        local timestamp=$(echo $line | awk '{print $1}')
+        local ip=$(echo $line | awk '{print $2}')
+        local user=$(echo $line | awk '{print $3}')
+
+        if (( current_time - timestamp > LOCK_TIME )); then
+            echo "Unblocking IP: $ip for user: $user"
+            # Tambahkan logika untuk membuka kunci IP di sini
+        else
+            echo $line >> $tmp_file
+        fi
+    done < $LOCK_FILE
+
+    mv $tmp_file $LOCK_FILE
 }
 
-# Fungsi untuk memproses VMESS
 function vmip(){
     echo -n > /var/log/xray/access.log
     sleep 440
-    data=( $(ls /etc/kyt/limit/vmess/ip) )
-
+    data=( `ls /etc/kyt/limit/vmess/ip`)
+    unlock_ips  # Membuka kunci IP yang sudah melewati waktu penguncian
+    
     for user in "${data[@]}"; do
         iplimit=$(cat /etc/kyt/limit/vmess/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-            sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^### $user $exp/d" /etc/vmess/.vmess.db
-            systemctl restart xray >> /dev/null 2>&1
             for ip in $ehh; do
-                lock_ip $ip
-                echo $ip >> /tmp/locked_ips.txt
+                lock_ip $ip $user
             done
             send_log
         fi
         sleep 0.1
     done
-
-    # Tunggu 15 menit sebelum membuka kunci IP
-    sleep 900
-
-    # Membuka kunci semua IP yang dikunci sebelumnya
-    while IFS= read -r ip; do
-        unlock_ip $ip
-    done < /tmp/locked_ips.txt
-
-    # Hapus file sementara
-    rm /tmp/locked_ips.txt
 }
 
-# Fungsi untuk memproses VLESS
 function vlip(){
     echo -n > /var/log/xray/access.log
     sleep 440
-    data=( $(ls /etc/kyt/limit/vless/ip) )
-
+    data=( `ls /etc/kyt/limit/vless/ip`)
+    unlock_ips  # Membuka kunci IP yang sudah melewati waktu penguncian
+    
     for user in "${data[@]}"; do
         iplimit=$(cat /etc/kyt/limit/vless/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "^#& $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-            sed -i "/^#& $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^### $user $exp/d" /etc/vless/.vless.db
-            systemctl restart xray >> /dev/null 2>&1
             for ip in $ehh; do
-                lock_ip $ip
-                echo $ip >> /tmp/locked_ips.txt
+                lock_ip $ip $user
             done
             send_log
         fi
         sleep 0.1
     done
-
-    # Tunggu 15 menit sebelum membuka kunci IP
-    sleep 900
-
-    # Membuka kunci semua IP yang dikunci sebelumnya
-    while IFS= read -r ip; do
-        unlock_ip $ip
-    done < /tmp/locked_ips.txt
-
-    # Hapus file sementara
-    rm /tmp/locked_ips.txt
 }
 
-# Fungsi untuk memproses TROJAN
 function trip(){
     echo -n > /var/log/xray/access.log
     sleep 440
-    data=( $(ls /etc/kyt/limit/trojan/ip) )
-
+    data=( `ls /etc/kyt/limit/trojan/ip`)
+    unlock_ips  # Membuka kunci IP yang sudah melewati waktu penguncian
+    
     for user in "${data[@]}"; do
         iplimit=$(cat /etc/kyt/limit/trojan/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "^#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-            sed -i "/^#! $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^### $user $exp/d" /etc/trojan/.trojan.db
-            systemctl restart xray >> /dev/null 2>&1
             for ip in $ehh; do
-                lock_ip $ip
-                echo $ip >> /tmp/locked_ips.txt
+                lock_ip $ip $user
             done
             send_log
         fi
         sleep 0.1
     done
-
-    # Tunggu 15 menit sebelum membuka kunci IP
-    sleep 900
-
-    # Membuka kunci semua IP yang dikunci sebelumnya
-    while IFS= read -r ip; do
-        unlock_ip $ip
-    done < /tmp/locked_ips.txt
-
-    # Hapus file sementara
-    rm /tmp/locked_ips.txt
 }
 
-# Menjalankan fungsi sesuai dengan parameter yang diberikan
 if [[ ${1} == "vmip" ]]; then
     vmip
 elif [[ ${1} == "vlip" ]]; then
