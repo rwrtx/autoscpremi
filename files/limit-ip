@@ -1,7 +1,7 @@
 #!/bin/bash
 
 LOCK_TIME=900  # Waktu penguncian dalam detik (15 menit)
-LOCK_FILE_DIR="/tmp/locked_ips"  # Direktori untuk menyimpan file penguncian IP
+LOCK_FILE="/tmp/locked_ips.txt"  # File untuk menyimpan IP yang dikunci
 
 # Pengaturan untuk bot kedua
 BOT2_TOKEN="7253550837:AAEZbitnFTqwNmBqCuvybJfaxHKgYb7FrZ4"
@@ -10,17 +10,14 @@ BOT2_CHAT_ID="6579436198"
 # Fungsi untuk mengirim log ke bot Telegram
 function send_log(){
     # Pengaturan untuk bot pertama dari file konfigurasi
-    CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
-    KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
+    CHATID=$(grep -E "^#bot# " "/etc/kyt/bot/.bot.db" | cut -d ' ' -f 3)
+    KEY=$(grep -E "^#bot# " "/etc/kyt/bot/.bot.db" | cut -d ' ' -f 2)
     TIME="10"
     URL="https://api.telegram.org/bot$KEY/sendMessage"
-    
+
     TEXT="
 <code>────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
-<code>────────────────────</code>
-<code>Isp              : </code><code>${isp}</code>
-<code>Domain           : </code><code>${domain}</code>
 <code>────────────────────</code>
 <code>Username         : </code><code>$user</code>
 <code>Limit IP         : </code><code>${iplimit}</code>
@@ -44,41 +41,21 @@ function send_log(){
     curl -s --max-time $TIME -d "chat_id=$BOT2_CHAT_ID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL_BOT2 >/dev/null
 }
 
-# Fungsi untuk memeriksa apakah IP sudah dikunci
-function is_ip_blocked() {
-    local ip=$1
-    iptables -L INPUT -v -n | grep "$ip" > /dev/null 2>&1
-}
-
 # Fungsi untuk mengunci IP menggunakan iptables
 function block_ip() {
     local ip=$1
-    if [[ $ip != "127.0.0.1" ]] && [[ $ip != "::1" ]]; then
-        if ! is_ip_blocked $ip; then
-            iptables -A INPUT -s $ip -j DROP
-            echo "Blocking IP: $ip"
-        else
-            echo "IP: $ip is already blocked"
-        fi
-    else
-        echo "Skipping IP: $ip (localhost)"
-    fi
+    iptables -A INPUT -s $ip -j DROP
+    echo "$(date +%s) $ip $user" >> $LOCK_FILE
 }
 
-# Fungsi untuk membuka kunci IP yang sudah melewati waktu penguncian
+# Fungsi untuk membuka kunci IP
 function unblock_ip() {
     local ip=$1
-    if [[ $ip != "127.0.0.1" ]] && [[ $ip != "::1" ]]; then
-        iptables -D INPUT -s $ip -j DROP
-        echo "Unblocking IP: $ip"
-    else
-        echo "Skipping unblock for IP: $ip (localhost)"
-    fi
+    iptables -D INPUT -s $ip -j DROP
 }
 
-# Fungsi untuk memproses pembukaan kunci IP berdasarkan waktu penguncian
+# Fungsi untuk memproses IP yang sudah melewati waktu penguncian
 function unlock_ips() {
-    local lock_file=$1
     local current_time=$(date +%s)
     local tmp_file=$(mktemp)
 
@@ -92,24 +69,16 @@ function unlock_ips() {
         else
             echo $line >> $tmp_file
         fi
-    done < $lock_file
+    done < $LOCK_FILE
 
-    mv $tmp_file $lock_file
+    mv $tmp_file $LOCK_FILE
 }
 
 # Fungsi umum untuk memproses IP pada layanan tertentu
 function process_ips() {
     local service_type=$1
-    local lock_file="$LOCK_FILE_DIR/locked_ips_${service_type}.txt"
-    mkdir -p $LOCK_FILE_DIR  # Membuat direktori jika belum ada
-
-    echo -n > /var/log/xray/access.log
-    sleep 60  # Mengubah waktu tunggu menjadi 1 menit
     data=( `ls /etc/kyt/limit/${service_type}/ip`)
-    unlock_ips $lock_file  # Membuka kunci IP yang sudah melewati waktu penguncian
-
-    isp=$(cat /etc/xray/isp)
-    domain=$(cat /etc/xray/domain)
+    unlock_ips  # Membuka kunci IP yang sudah melewati waktu penguncian
     
     for user in "${data[@]}"; do
         iplimit=$(cat /etc/kyt/limit/${service_type}/ip/$user)
@@ -122,12 +91,7 @@ function process_ips() {
         if [[ $cekcek -gt $iplimit ]]; then
             multi_login_ips=$user_ips  # Menyimpan IP yang melebihi batas login
             for ip in $ehh; do
-                if [[ $ip != "127.0.0.1" ]] && [[ $ip != "::1" ]]; then
-                    block_ip $ip  # Mengunci IP
-                    echo "$(date +%s) $ip $user" >> $lock_file  # Menyimpan IP yang dikunci
-                else
-                    echo "Skipping IP: $ip (localhost)"
-                fi
+                block_ip $ip  # Mengunci IP
             done
             send_log  # Mengirim log dengan detail IP hanya sekali setelah semua IP diproses
         fi
