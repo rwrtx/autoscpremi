@@ -37,12 +37,6 @@ function send_log(){
 <code>Limit IP         : </code><code>${iplimit}</code>
 <code>Login IP Count   : </code><code>${cekcek}</code>
 <code>────────────────────</code>
-<code>User IP          : </code>
-<code>${user_ips}</code>
-<code>────────────────────</code>
-<code>Multi-Login IP   : </code>
-<code>${multi_login_ips}</code>
-<code>────────────────────</code>
 "
 
     # Mengirim pesan ke bot pertama
