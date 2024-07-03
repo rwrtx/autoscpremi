@@ -13,9 +13,11 @@ function send_log(){
 <code>────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
 <code>────────────────────</code>
-<code>Username  : </code><code>$user</code>
-<code>Limit Ip  : </code><code>${iplimit}</code>
-<code>Login Ip  : </code><code>${cekcek}</code>
+<code>Username        : </code><code>$user</code>
+<code>Limit IP       : </code><code>${iplimit}</code>
+<code>Login IP Count : </code><code>${cekcek}</code>
+<code>User IP        : </code><code>${user_ips}</code>
+<code>Multi-Login IP : </code><code>${multi_login_ips}</code>
 <code>────────────────────</code>
 "
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
@@ -65,6 +67,7 @@ function unlock_ips() {
     mv $tmp_file $LOCK_FILE
 }
 
+# Fungsi untuk memproses IP pada layanan VMess
 function vmip(){
     echo -n > /var/log/xray/access.log
     sleep 60  # Mengubah waktu tunggu menjadi 1 menit
@@ -75,18 +78,21 @@ function vmip(){
         iplimit=$(cat /etc/kyt/limit/vmess/ip/$user)
         ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
         cekcek=$(echo -e "$ehh" | wc -l)
+        user_ips=$(echo $ehh | tr '\n' ' ')  # Mengumpulkan IP user
 
         if [[ $cekcek -gt $iplimit ]]; then
+            multi_login_ips=$user_ips  # Menyimpan IP yang melebihi batas login
             for ip in $ehh; do
                 block_ip $ip  # Mengunci IP
                 echo "$(date +%s) $ip $user" >> $LOCK_FILE  # Menyimpan IP yang dikunci
-                send_log
+                send_log  # Mengirim log dengan detail IP
             done
         fi
         sleep 0.1
     done
 }
 
+# Fungsi untuk memproses IP pada layanan VLess
 function vlip(){
     echo -n > /var/log/xray/access.log
     sleep 60  # Mengubah waktu tunggu menjadi 1 menit
@@ -97,18 +103,21 @@ function vlip(){
         iplimit=$(cat /etc/kyt/limit/vless/ip/$user)
         ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
         cekcek=$(echo -e "$ehh" | wc -l)
+        user_ips=$(echo $ehh | tr '\n' ' ')  # Mengumpulkan IP user
 
         if [[ $cekcek -gt $iplimit ]]; then
+            multi_login_ips=$user_ips  # Menyimpan IP yang melebihi batas login
             for ip in $ehh; do
                 block_ip $ip  # Mengunci IP
                 echo "$(date +%s) $ip $user" >> $LOCK_FILE  # Menyimpan IP yang dikunci
-                send_log
+                send_log  # Mengirim log dengan detail IP
             done
         fi
         sleep 0.1
     done
 }
 
+# Fungsi untuk memproses IP pada layanan Trojan
 function trip(){
     echo -n > /var/log/xray/access.log
     sleep 60  # Mengubah waktu tunggu menjadi 1 menit
@@ -119,12 +128,14 @@ function trip(){
         iplimit=$(cat /etc/kyt/limit/trojan/ip/$user)
         ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
         cekcek=$(echo -e "$ehh" | wc -l)
+        user_ips=$(echo $ehh | tr '\n' ' ')  # Mengumpulkan IP user
 
         if [[ $cekcek -gt $iplimit ]]; then
+            multi_login_ips=$user_ips  # Menyimpan IP yang melebihi batas login
             for ip in $ehh; do
                 block_ip $ip  # Mengunci IP
                 echo "$(date +%s) $ip $user" >> $LOCK_FILE  # Menyimpan IP yang dikunci
-                send_log
+                send_log  # Mengirim log dengan detail IP
             done
         fi
         sleep 0.1
