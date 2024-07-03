@@ -1,7 +1,7 @@
 #!/bin/bash
 
 LOCK_TIME=900  # Waktu penguncian dalam detik (15 menit)
-LOCK_FILE="/tmp/locked_ips.txt"  # File untuk menyimpan IP yang dikunci
+LOCK_FILE_DIR="/tmp/locked_ips"  # Direktori untuk menyimpan file penguncian IP
 
 # Pengaturan untuk bot kedua
 BOT2_TOKEN="7253550837:AAEZbitnFTqwNmBqCuvybJfaxHKgYb7FrZ4"
@@ -53,23 +53,32 @@ function is_ip_blocked() {
 # Fungsi untuk mengunci IP menggunakan iptables
 function block_ip() {
     local ip=$1
-    if ! is_ip_blocked $ip; then
-        iptables -A INPUT -s $ip -j DROP
-        echo "Blocking IP: $ip"
+    if [[ $ip != "127.0.0.1" ]] && [[ $ip != "::1" ]]; then
+        if ! is_ip_blocked $ip; then
+            iptables -A INPUT -s $ip -j DROP
+            echo "Blocking IP: $ip"
+        else
+            echo "IP: $ip is already blocked"
+        fi
     else
-        echo "IP: $ip is already blocked"
+        echo "Skipping IP: $ip (localhost)"
     fi
 }
 
 # Fungsi untuk membuka kunci IP yang sudah melewati waktu penguncian
 function unblock_ip() {
     local ip=$1
-    iptables -D INPUT -s $ip -j DROP
-    echo "Unblocking IP: $ip"
+    if [[ $ip != "127.0.0.1" ]] && [[ $ip != "::1" ]]; then
+        iptables -D INPUT -s $ip -j DROP
+        echo "Unblocking IP: $ip"
+    else
+        echo "Skipping unblock for IP: $ip (localhost)"
+    fi
 }
 
 # Fungsi untuk memproses pembukaan kunci IP berdasarkan waktu penguncian
 function unlock_ips() {
+    local lock_file=$1
     local current_time=$(date +%s)
     local tmp_file=$(mktemp)
 
@@ -83,18 +92,21 @@ function unlock_ips() {
         else
             echo $line >> $tmp_file
         fi
-    done < $LOCK_FILE
+    done < $lock_file
 
-    mv $tmp_file $LOCK_FILE
+    mv $tmp_file $lock_file
 }
 
 # Fungsi umum untuk memproses IP pada layanan tertentu
 function process_ips() {
     local service_type=$1
+    local lock_file="$LOCK_FILE_DIR/locked_ips_${service_type}.txt"
+    mkdir -p $LOCK_FILE_DIR  # Membuat direktori jika belum ada
+
     echo -n > /var/log/xray/access.log
     sleep 60  # Mengubah waktu tunggu menjadi 1 menit
     data=( `ls /etc/kyt/limit/${service_type}/ip`)
-    unlock_ips  # Membuka kunci IP yang sudah melewati waktu penguncian
+    unlock_ips $lock_file  # Membuka kunci IP yang sudah melewati waktu penguncian
 
     isp=$(cat /etc/xray/isp)
     domain=$(cat /etc/xray/domain)
@@ -110,8 +122,12 @@ function process_ips() {
         if [[ $cekcek -gt $iplimit ]]; then
             multi_login_ips=$user_ips  # Menyimpan IP yang melebihi batas login
             for ip in $ehh; do
-                block_ip $ip  # Mengunci IP
-                echo "$(date +%s) $ip $user" >> $LOCK_FILE  # Menyimpan IP yang dikunci
+                if [[ $ip != "127.0.0.1" ]] && [[ $ip != "::1" ]]; then
+                    block_ip $ip  # Mengunci IP
+                    echo "$(date +%s) $ip $user" >> $lock_file  # Menyimpan IP yang dikunci
+                else
+                    echo "Skipping IP: $ip (localhost)"
+                fi
             done
             send_log  # Mengirim log dengan detail IP hanya sekali setelah semua IP diproses
         fi
