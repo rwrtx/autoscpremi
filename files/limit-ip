@@ -19,7 +19,12 @@ BOT2_TOKEN="7253550837:AAEZbitnFTqwNmBqCuvybJfaxHKgYb7FrZ4"
 BOT2_CHAT_ID="6579436198"
 
 # Fungsi untuk mengirim log ke bot Telegram
-function send_log(){
+function send_log() {
+    local action=$1
+    local user=$2
+    local ip_list=$3
+    local protocol=$4
+
     # Pengaturan untuk bot pertama dari file konfigurasi
     CHATID=$(grep -E "^#bot# " "/etc/kyt/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/kyt/bot/.bot.db" | cut -d ' ' -f 2)
@@ -28,15 +33,16 @@ function send_log(){
 
     TEXT="
 <code>────────────────────</code>
-<b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
+<b>⚠️ ${action} MULTI LOGIN XRAY ⚠️</b>
 <code>────────────────────</code>
-<code>Isp              : </code><code>${isp}</code>
+<code>ISP              : </code><code>${isp}</code>
 <code>Domain           : </code><code>${domain}</code>
 <code>────────────────────</code>
-<code>Username         : </code><code>$user</code>
-<code>Limit IP         : </code><code>${iplimit}</code>
-<code>Login IP Count   : </code><code>${cekcek}</code>
-<code>Login            : </code><code>${LOCK_FILE}</code>
+<code>Username         : </code><code>${user}</code>
+<code>IP List          : </code><code>${ip_list}</code>
+<code>Protocol         : </code><code>${protocol}</code>
+<code>────────────────────</code>
+<code>Status           : </code><code>${LOCK_FILE}</code>
 <code>────────────────────</code>
 "
 
@@ -49,9 +55,42 @@ function send_log(){
     # Mengirim pesan ke bot kedua
     curl -s --max-time $TIME -d "chat_id=$BOT2_CHAT_ID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL_BOT2 >/dev/null
 }
-    isp=$(cat /etc/xray/isp)
-    domain=$(cat /etc/xray/domain)
+
+isp=$(cat /etc/xray/isp)
+domain=$(cat /etc/xray/domain)
+
+# Fungsi untuk mengunci pengguna
+function lock_user() {
+    local user=$1
+    local protocol=$2
+
+    # Tambahkan status terkunci di file database pengguna
+    case $protocol in
+        vmess)
+            sed -i "s/^### $user/& locked/" /etc/kyt/vmess/.vmess.db
+            ;;
+        vless)
+            sed -i "s/^#& $user/& locked/" /etc/kyt/vless/.vless.db
+            ;;
+        shadowsocks)
+            sed -i "s/^#! $user/& locked/" /etc/kyt/shadowsocks/.shadowsocks.db
+            ;;
+    esac
+
+    # Mengirim log notifikasi pengguna terkunci
+    send_log "User $user has been locked due to exceeding IP limit" $user "$ehh" $protocol
 }
+
+# Fungsi untuk mengirim notifikasi unlock
+function send_unlock_notification() {
+    local user=$1
+    local protocol=$2
+
+    TEXT="<b>🔓 User $user has been unlocked and can now log in again on $protocol 🔓</b>"
+    URL="https://api.telegram.org/bot$BOT2_TOKEN/sendMessage"
+    curl -s -X POST $URL -d "chat_id=$BOT2_CHAT_ID&text=$TEXT&parse_mode=html" >/dev/null
+}
+
 function vmip() {
     if is_locked; then
         echo "Akun terkunci. Tunggu 15 menit."
@@ -61,7 +100,7 @@ function vmip() {
     lock
 
     echo -n > /var/log/xray/access.log
-    sleep 440
+    sleep 30
     data=( $(ls /etc/kyt/limit/vmess/ip) )
 
     for user in "${data[@]}"; do
@@ -70,13 +109,8 @@ function vmip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-            sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^### $user $exp/d" /etc/kyt/vmess/.vmess.db
-            systemctl restart xray >> /dev/null 2>&1
-            jum2=$(cat /tmp/ipvmess.txt | wc -l)
-            rm -rf /etc/kyt/limit/vmess/ip/$user
-            send_log
+            # Mengunci pengguna alih-alih menghapusnya
+            lock_user $user vmess
         else
             echo ""
         fi
@@ -85,6 +119,10 @@ function vmip() {
 
     sleep 900  # Tidur selama 15 menit
     unlock
+
+    for user in "${data[@]}"; do
+        send_unlock_notification $user vmess
+    done
 }
 
 function vlip() {
@@ -96,7 +134,7 @@ function vlip() {
     lock
 
     echo -n > /var/log/xray/access.log
-    sleep 440
+    sleep 30
     data=( $(ls /etc/kyt/limit/vless/ip) )
 
     for user in "${data[@]}"; do
@@ -105,13 +143,8 @@ function vlip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "^#& $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-            sed -i "/^#& $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^### $user $exp/d" /etc/kyt/vless/.vless.db
-            systemctl restart xray >> /dev/null 2>&1
-            jum2=$(cat /tmp/ipvless.txt | wc -l)
-            rm -rf /etc/kyt/limit/vless/ip/$user
-            send_log
+            # Mengunci pengguna alih-alih menghapusnya
+            lock_user $user vless
         else
             echo ""
         fi
@@ -120,6 +153,10 @@ function vlip() {
 
     sleep 900  # Tidur selama 15 menit
     unlock
+
+    for user in "${data[@]}"; do
+        send_unlock_notification $user vless
+    done
 }
 
 function trip() {
@@ -131,7 +168,7 @@ function trip() {
     lock
 
     echo -n > /var/log/xray/access.log
-    sleep 440
+    sleep 30
     data=( $(ls /etc/kyt/limit/shadowsocks/ip) )
 
     for user in "${data[@]}"; do
@@ -140,13 +177,8 @@ function trip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-            sed -i "/^#! $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^### $user $exp/d" /etc/kyt/shadowsocks/.shadowsocks.db
-            systemctl restart xray >> /dev/null 2>&1
-            jum2=$(cat /tmp/ipshadowsocks.txt | wc -l)
-            rm -rf /etc/kyt/limit/shadowsocks/ip/$user
-            send_log
+            # Mengunci pengguna alih-alih menghapusnya
+            lock_user $user shadowsocks
         else
             echo ""
         fi
@@ -155,43 +187,11 @@ function trip() {
 
     sleep 900  # Tidur selama 15 menit
     unlock
-}
-
-function trip() {
-    if is_locked; then
-        echo "Akun terkunci. Tunggu 15 menit."
-        exit 0
-    fi
-
-    lock
-
-    echo -n > /var/log/xray/access.log
-    sleep 440
-    data=( $(ls /etc/kyt/limit/shadowsocks/ip) )
 
     for user in "${data[@]}"; do
-        iplimit=$(cat /etc/kyt/limit/shadowsocks/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
-        cekcek=$(echo -e "$ehh" | wc -l)
-
-        if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-            sed -i "/^#! $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^### $user $exp/d" /etc/kyt/shadowsocks/.shadowsocks.db
-            systemctl restart xray >> /dev/null 2>&1
-            jum2=$(cat /tmp/ipshadowsocks.txt | wc -l)
-            rm -rf /etc/kyt/limit/shadowsocks/ip/$user
-            send_log
-        else
-            echo ""
-        fi
-        sleep 0.1
+        send_unlock_notification $user shadowsocks
     done
-
-    sleep 900  # Tidur selama 15 menit
-    unlock
 }
-
 
 if [[ ${1} == "vmip" ]]; then
     vmip
@@ -200,5 +200,5 @@ elif [[ ${1} == "vlip" ]]; then
 elif [[ ${1} == "trip" ]]; then
     trip
 elif [[ ${1} == "shadowsocks" ]]; then
-    shadowsocks
+    trip  # Perbaikan: Panggil trip untuk shadowsocks
 fi
