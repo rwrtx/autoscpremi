@@ -38,7 +38,7 @@ clear
 cat >/etc/systemd/system/vmip.service << EOF
 [Unit]
 Description=My
-After=network.target
+ProjectAfter=network.target
 
 [Service]
 WorkingDirectory=/root
@@ -53,7 +53,7 @@ EOF
 cat >/etc/systemd/system/vlip.service << EOF
 [Unit]
 Description=My
-After=network.target
+ProjectAfter=network.target
 
 [Service]
 WorkingDirectory=/root
@@ -68,7 +68,7 @@ EOF
 cat >/etc/systemd/system/trip.service << EOF
 [Unit]
 Description=My
-After=network.target
+ProjectAfter=network.target
 
 [Service]
 WorkingDirectory=/root
