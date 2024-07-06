@@ -37,18 +37,18 @@ function send_log() {
 <code>────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
 <code>────────────────────</code>
-<code>ISP    : ${isp}</code>
-<code>Domain : ${domain}</code>
+<code>ISP                      : ${isp}</code>
+<code>Domain               : ${domain}</code>
 <code>────────────────────</code>
-<code>Username        : ${user}</code>
-<code>Limit IP        : ${iplimit}</code>
-<code>Login IP Count  : ${cekcek}</code>
-<code>Protokol        : ${protocol}</code>
+<code>Username            : ${user}</code>
+<code>Limit IP                : ${iplimit}</code>
+<code>Login IP Count    : ${cekcek}</code>
+<code>Protokol              : ${protocol}</code>
 <code>────────────────────</code>
-<code>Detail IP Login : </code>
+<code>Detail IP Login     : </code>
 <code>$(echo "$ip_list" | sed 's/ /\n/g')</code>
 <code>────────────────────</code>
-<code>Status          : ${action}</code>
+<code>Status                : ${action}</code>
 <code>────────────────────</code>
 "
 
@@ -73,21 +73,50 @@ function lock_user() {
     local iplimit=$4
     local cekcek=$5
 
-    # Tambahkan status terkunci di file database pengguna
     case $protocol in
         vmess)
-            sed -i "s/^### $user/& locked/" /etc/kyt/vmess/.vmess.db
+            sed -i "/^### $user/ s/$/ locked/" /etc/xray/config.json
             ;;
         vless)
-            sed -i "s/^#& $user/& locked/" /etc/kyt/vless/.vless.db
+            sed -i "/^#& $user/ s/$/ locked/" /etc/xray/config.json
             ;;
         shadowsocks)
-            sed -i "s/^#! $user/& locked/" /etc/kyt/shadowsocks/.shadowsocks.db
+            sed -i "/^#! $user/ s/$/ locked/" /etc/xray/config.json
             ;;
     esac
 
     # Mengirim log notifikasi pengguna terkunci
     send_log "LOCK" $user "$ip_list" $protocol $iplimit $cekcek
+
+    # Restart layanan untuk menerapkan perubahan
+    systemctl restart xray
+}
+
+# Fungsi untuk menghapus pengguna
+function delete_user() {
+    local user=$1
+    local protocol=$2
+    local ip_list=$3
+    local iplimit=$4
+    local cekcek=$5
+
+    case $protocol in
+        vmess)
+            sed -i "/^### $user/,/},{/d" /etc/xray/config.json
+            ;;
+        vless)
+            sed -i "/^#& $user/,/},{/d" /etc/xray/config.json
+            ;;
+        shadowsocks)
+            sed -i "/^#! $user/,/},{/d" /etc/xray/config.json
+            ;;
+    esac
+
+    # Mengirim log notifikasi pengguna dihapus
+    send_log "DELETED" $user "$ip_list" $protocol $iplimit $cekcek
+
+    # Restart layanan untuk menerapkan perubahan
+    systemctl restart xray
 }
 
 # Fungsi untuk mengirim notifikasi unlock
@@ -99,6 +128,21 @@ function send_unlock_notification() {
     local cekcek=$5
 
     send_log "UNLOCK" $user "$ip_list" $protocol $iplimit $cekcek
+
+    case $protocol in
+        vmess)
+            sed -i "/^### $user locked/ s/ locked//" /etc/xray/config.json
+            ;;
+        vless)
+            sed -i "/^#& $user locked/ s/ locked//" /etc/xray/config.json
+            ;;
+        shadowsocks)
+            sed -i "/^#! $user locked/ s/ locked//" /etc/xray/config.json
+            ;;
+    esac
+
+    # Restart layanan untuk menerapkan perubahan
+    systemctl restart xray
 }
 
 function vmip() {
@@ -119,7 +163,7 @@ function vmip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            # Mengunci pengguna alih-alih menghapusnya
+            # Mengunci pengguna
             lock_user $user vmess "$ehh" $iplimit $cekcek
         else
             echo ""
@@ -153,7 +197,7 @@ function vlip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            # Mengunci pengguna alih-alih menghapusnya
+            # Mengunci pengguna
             lock_user $user vless "$ehh" $iplimit $cekcek
         else
             echo ""
@@ -187,7 +231,7 @@ function trip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            # Mengunci pengguna alih-alih menghapusnya
+            # Mengunci pengguna
             lock_user $user shadowsocks "$ehh" $iplimit $cekcek
         else
             echo ""
