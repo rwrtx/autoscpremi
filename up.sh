@@ -66,14 +66,6 @@ res1() {
     bash fv-tunnel
     rm -rf fv-tunnel
 }
-function noobzvpn() {
-wget "https://raw.githubusercontent.com/rwrtx/autoscmain/main/noobzvpns.zip"
-unzip noobzvpns.zip
-bash install.sh
-rm noobzvpns.zip
-systemctl restart noobzvpns
-print_success "NOOBZVPN"
-}
 netfilter-persistent
 clear
 clear
