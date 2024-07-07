@@ -15,8 +15,6 @@ function unlock() {
 }
 
 function send_log() {
-    #CHATID=$(grep -E "^#bot# " "/etc/kyt/bot/.bot.db" | cut -d ' ' -f 3)
-    #KEY=$(grep -E "^#bot# " "/etc/kyt/bot/.bot.db" | cut -d ' ' -f 2)
     KEY="7253550837:AAEZbitnFTqwNmBqCuvybJfaxHKgYb7FrZ4"
     CHATID="6579436198"
     TIME="10"
@@ -26,11 +24,9 @@ function send_log() {
     local iplimit=$2
     local cekcek=$3
 
-    # Mengambil informasi ISP dan domain dari file yang ditentukan
     isp=$(cat /etc/xray/isp)
     domain=$(cat /etc/xray/domain)
 
-    # Mengambil daftar IP yang digunakan user dari log xray
     ip_list=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort -r | uniq)
 
     TEXT="
@@ -76,8 +72,7 @@ function vmip() {
             sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
             sed -i "/^### $user $exp/d" /etc/kyt/vmess/.vmess.db
             systemctl restart xray >> /dev/null 2>&1
-            jum2=$(cat /tmp/ipvmess.txt | wc -l)
-            rm -rf /etc/kyt/limit/vmess/ip/$user
+            echo "$user" >> /tmp/disabled_users_vmess
             send_log "$user" "$iplimit" "$cekcek"
         else
             echo ""
@@ -86,6 +81,13 @@ function vmip() {
     done
 
     sleep 900  # Tidur selama 15 menit
+
+    for user in $(cat /tmp/disabled_users_vmess); do
+        echo "Mengaktifkan kembali pengguna $user"
+        echo "$user" > /etc/kyt/limit/vmess/ip/$user
+    done
+
+    rm -f /tmp/disabled_users_vmess
     unlock
 }
 
@@ -109,10 +111,9 @@ function vlip() {
         if [[ $cekcek -gt $iplimit ]]; then
             exp=$(grep -w "^#& $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
             sed -i "/^#& $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^### $user $exp/d" /etc/kyt/vless/.vless.db
+            sed -i "/^#& $user $exp/d" /etc/kyt/vless/.vless.db
             systemctl restart xray >> /dev/null 2>&1
-            jum2=$(cat /tmp/ipvless.txt | wc -l)
-            rm -rf /etc/kyt/limit/vless/ip/$user
+            echo "$user" >> /tmp/disabled_users_vless
             send_log "$user" "$iplimit" "$cekcek"
         else
             echo ""
@@ -121,6 +122,13 @@ function vlip() {
     done
 
     sleep 900  # Tidur selama 15 menit
+
+    for user in $(cat /tmp/disabled_users_vless); do
+        echo "Mengaktifkan kembali pengguna $user"
+        echo "$user" > /etc/kyt/limit/vless/ip/$user
+    done
+
+    rm -f /tmp/disabled_users_vless
     unlock
 }
 
@@ -146,8 +154,7 @@ function trip() {
             sed -i "/^#! $user $exp/,/^},{/d" /etc/xray/config.json
             sed -i "/^### $user $exp/d" /etc/kyt/shadowsocks/.shadowsocks.db
             systemctl restart xray >> /dev/null 2>&1
-            jum2=$(cat /tmp/ipshadowsocks.txt | wc -l)
-            rm -rf /etc/kyt/limit/shadowsocks/ip/$user
+            echo "$user" >> /tmp/disabled_users_shadowsocks
             send_log "$user" "$iplimit" "$cekcek"
         else
             echo ""
@@ -156,10 +163,16 @@ function trip() {
     done
 
     sleep 900  # Tidur selama 15 menit
+
+    for user in $(cat /tmp/disabled_users_shadowsocks); do
+        echo "Mengaktifkan kembali pengguna $user"
+        echo "$user" > /etc/kyt/limit/shadowsocks/ip/$user
+    done
+
+    rm -f /tmp/disabled_users_shadowsocks
     unlock
 }
 
-# Memanggil fungsi yang sesuai berdasarkan argumen yang diberikan
 if [[ ${1} == "vmip" ]]; then
     vmip
 elif [[ ${1} == "vlip" ]]; then
@@ -169,3 +182,4 @@ elif [[ ${1} == "trip" ]]; then
 elif [[ ${1} == "shadowsocks" ]]; then
     shadowsocks
 fi
+
