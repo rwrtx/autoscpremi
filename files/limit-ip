@@ -142,6 +142,47 @@ function trip() {
 
     echo -n > /var/log/xray/access.log
     sleep 60
+    data=( $(ls /etc/kyt/limit/trojan/ip) )
+
+    for user in "${data[@]}"; do
+        iplimit=$(cat /etc/kyt/limit/trojan/ip/$user)
+        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        cekcek=$(echo -e "$ehh" | wc -l)
+
+        if [[ $cekcek -gt $iplimit ]]; then
+            exp=$(grep -w "#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
+            sed -i "/^#! $user $exp/,/^},{/d" /etc/xray/config.json
+            sed -i "/^### $user $exp/d" /etc/kyt/trojan/.trojan.db
+            systemctl restart xray >> /dev/null 2>&1
+            echo "$user" >> /tmp/disabled_users_trojan
+            send_log "$user" "$iplimit" "$cekcek"
+        else
+            echo ""
+        fi
+        sleep 0.1
+    done
+
+    sleep 900  # Tidur selama 15 menit
+
+    for user in $(cat /tmp/disabled_users_trojan); do
+        echo "Mengaktifkan kembali pengguna $user"
+        echo "$user" > /etc/kyt/limit/trojan/ip/$user
+    done
+
+    rm -f /tmp/disabled_users_trojan
+    unlock
+}
+
+function shadowsocks() {
+    if is_locked; then
+        echo "Akun terkunci. Tunggu 15 menit."
+        exit 0
+    fi
+
+    lock
+
+    echo -n > /var/log/xray/access.log
+    sleep 60
     data=( $(ls /etc/kyt/limit/shadowsocks/ip) )
 
     for user in "${data[@]}"; do
@@ -173,6 +214,7 @@ function trip() {
     unlock
 }
 
+# Memanggil fungsi yang sesuai berdasarkan argumen yang diberikan
 if [[ ${1} == "vmip" ]]; then
     vmip
 elif [[ ${1} == "vlip" ]]; then
@@ -182,4 +224,3 @@ elif [[ ${1} == "trip" ]]; then
 elif [[ ${1} == "shadowsocks" ]]; then
     shadowsocks
 fi
-
