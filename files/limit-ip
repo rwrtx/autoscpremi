@@ -40,10 +40,11 @@ function send_log() {
     <code>Limit IP        : ${iplimit}</code>
     <code>Login IP Count  : ${cekcek}</code>
     <code>────────────────────</code>
-    <code>Detail IP Login :</code>
+    <code>Detail List IP Login</code>
     $(echo "$ip_list" | sed 's/^/<code>/; s/$/<\/code>/')
     <code>────────────────────</code>
-    <code>Status          : Akun terkunci</code>
+    <code>Status Layanan | Akun terkunci Sementara</code>
+    <code>               | Tunggu selama 15 menit</code>
     <code>────────────────────</code>
     "
 
