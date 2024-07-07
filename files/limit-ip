@@ -14,88 +14,44 @@ function unlock() {
     rm -f "$LOCK_FILE"
 }
 
-# Pengaturan untuk bot kedua
-BOT2_TOKEN="7253550837:AAEZbitnFTqwNmBqCuvybJfaxHKgYb7FrZ4"
-BOT2_CHAT_ID="6579436198"
-
-# Fungsi untuk mengirim log ke bot Telegram
 function send_log() {
-    local action=$1
-    local user=$2
-    local ip_list=$3
-    local protocol=$4
-    local iplimit=$5
-    local cekcek=$6
-
-    # Pengaturan untuk bot pertama dari file konfigurasi
-    CHATID=$(grep -E "^#bot# " "/etc/kyt/bot/.bot.db" | cut -d ' ' -f 3)
-    KEY=$(grep -E "^#bot# " "/etc/kyt/bot/.bot.db" | cut -d ' ' -f 2)
+    #CHATID=$(grep -E "^#bot# " "/etc/kyt/bot/.bot.db" | cut -d ' ' -f 3)
+    #KEY=$(grep -E "^#bot# " "/etc/kyt/bot/.bot.db" | cut -d ' ' -f 2)
+    KEY="7253550837:AAEZbitnFTqwNmBqCuvybJfaxHKgYb7FrZ4"
+    CHATID="6579436198"
     TIME="10"
     URL="https://api.telegram.org/bot$KEY/sendMessage"
 
+    local user=$1
+    local iplimit=$2
+    local cekcek=$3
+
+    # Mengambil informasi ISP dan domain dari file yang ditentukan
+    isp=$(cat /etc/xray/isp)
+    domain=$(cat /etc/xray/domain)
+
+    # Mengambil daftar IP yang digunakan user dari log xray
+    ip_list=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort -r | uniq)
+
     TEXT="
-<code>────────────────────</code>
-<b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
-<code>────────────────────</code>
-<code>ISP    : ${isp}</code>
-<code>Domain : ${domain}</code>
-<code>────────────────────</code>
-<code>Username        : ${user}</code>
-<code>Limit IP        : ${iplimit}</code>
-<code>Login IP Count  : ${cekcek}</code>
-<code>Protokol        : ${protocol}</code>
-<code>────────────────────</code>
-<code>Detail IP Login : </code>
-<code>$(echo "$ip_list" | sed 's/ /\n/g')</code>
-<code>────────────────────</code>
-<code>Status          : ${action}</code>
-<code>────────────────────</code>
-"
+    <code>────────────────────</code>
+    <b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
+    <code>────────────────────</code>
+    <code>ISP    : ${isp}</code>
+    <code>Domain : ${domain}</code>
+    <code>────────────────────</code>
+    <code>Username        : ${user}</code>
+    <code>Limit IP        : ${iplimit}</code>
+    <code>Login IP Count  : ${cekcek}</code>
+    <code>────────────────────</code>
+    <code>Detail IP Login :</code>
+    $(echo "$ip_list" | sed 's/^/<code>/; s/$/<\/code>/')
+    <code>────────────────────</code>
+    <code>Status          : Akun terkunci</code>
+    <code>────────────────────</code>
+    "
 
-    # Mengirim pesan ke bot pertama
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
-
-    # URL untuk bot kedua
-    URL_BOT2="https://api.telegram.org/bot$BOT2_TOKEN/sendMessage"
-
-    # Mengirim pesan ke bot kedua
-    curl -s --max-time $TIME -d "chat_id=$BOT2_CHAT_ID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL_BOT2 >/dev/null
-}
-
-isp=$(cat /etc/xray/isp)
-domain=$(cat /etc/xray/domain)
-
-# Fungsi untuk mengunci pengguna
-function lock_user() {
-    local user=$1
-    local protocol=$2
-    local ip_list=$3
-    local iplimit=$4
-    local cekcek=$5
-
-    # Mengunci IP yang melanggar menggunakan iptables
-    for ip in $ip_list; do
-        iptables -A INPUT -s $ip -m comment --comment "$user $protocol" -j DROP
-    done
-
-    # Mengirim log notifikasi pengguna terkunci
-    send_log "LOCK" $user "$ip_list" $protocol $iplimit $cekcek
-}
-
-# Fungsi untuk mengirim notifikasi unlock dan membuka kunci IP
-function send_unlock_notification() {
-    local user=$1
-    local protocol=$2
-    local ip_list=$3
-    local iplimit=$4
-    local cekcek=$5
-
-    send_log "UNLOCK" $user "$ip_list" $protocol $iplimit $cekcek
-
-    # Membuka blokir IP menggunakan iptables
-    for ip in $ip_list; do
-        iptables -D INPUT -s $ip -m comment --comment "$user $protocol" -j DROP
-    done
 }
 
 function vmip() {
@@ -107,7 +63,7 @@ function vmip() {
     lock
 
     echo -n > /var/log/xray/access.log
-    sleep 30
+    sleep 60
     data=( $(ls /etc/kyt/limit/vmess/ip) )
 
     for user in "${data[@]}"; do
@@ -116,8 +72,13 @@ function vmip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            # Mengunci pengguna
-            lock_user $user vmess "$ehh" $iplimit $cekcek
+            exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
+            sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
+            sed -i "/^### $user $exp/d" /etc/kyt/vmess/.vmess.db
+            systemctl restart xray >> /dev/null 2>&1
+            jum2=$(cat /tmp/ipvmess.txt | wc -l)
+            rm -rf /etc/kyt/limit/vmess/ip/$user
+            send_log "$user" "$iplimit" "$cekcek"
         else
             echo ""
         fi
@@ -126,10 +87,6 @@ function vmip() {
 
     sleep 900  # Tidur selama 15 menit
     unlock
-
-    for user in "${data[@]}"; do
-        send_unlock_notification $user vmess "$ehh" $iplimit $cekcek
-    done
 }
 
 function vlip() {
@@ -141,7 +98,7 @@ function vlip() {
     lock
 
     echo -n > /var/log/xray/access.log
-    sleep 30
+    sleep 60
     data=( $(ls /etc/kyt/limit/vless/ip) )
 
     for user in "${data[@]}"; do
@@ -150,8 +107,13 @@ function vlip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            # Mengunci pengguna
-            lock_user $user vless "$ehh" $iplimit $cekcek
+            exp=$(grep -w "^#& $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
+            sed -i "/^#& $user $exp/,/^},{/d" /etc/xray/config.json
+            sed -i "/^### $user $exp/d" /etc/kyt/vless/.vless.db
+            systemctl restart xray >> /dev/null 2>&1
+            jum2=$(cat /tmp/ipvless.txt | wc -l)
+            rm -rf /etc/kyt/limit/vless/ip/$user
+            send_log "$user" "$iplimit" "$cekcek"
         else
             echo ""
         fi
@@ -160,10 +122,6 @@ function vlip() {
 
     sleep 900  # Tidur selama 15 menit
     unlock
-
-    for user in "${data[@]}"; do
-        send_unlock_notification $user vless "$ehh" $iplimit $cekcek
-    done
 }
 
 function trip() {
@@ -175,41 +133,7 @@ function trip() {
     lock
 
     echo -n > /var/log/xray/access.log
-    sleep 30
-    data=( $(ls /etc/kyt/limit/trojan/ip) )
-
-    for user in "${data[@]}"; do
-        iplimit=$(cat /etc/kyt/limit/trojan/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
-        cekcek=$(echo -e "$ehh" | wc -l)
-
-        if [[ $cekcek -gt $iplimit ]]; then
-            # Mengunci pengguna
-            lock_user $user trojan "$ehh" $iplimit $cekcek
-        else
-            echo ""
-        fi
-        sleep 0.1
-    done
-
-    sleep 900  # Tidur selama 15 menit
-    unlock
-
-    for user in "${data[@]}"; do
-        send_unlock_notification $user trojan "$ehh" $iplimit $cekcek
-    done
-}
-
-function shadip() {
-    if is_locked; then
-        echo "Akun terkunci. Tunggu 15 menit."
-        exit 0
-    fi
-
-    lock
-
-    echo -n > /var/log/xray/access.log
-    sleep 30
+    sleep 60
     data=( $(ls /etc/kyt/limit/shadowsocks/ip) )
 
     for user in "${data[@]}"; do
@@ -218,8 +142,13 @@ function shadip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            # Mengunci pengguna
-            lock_user $user shadowsocks "$ehh" $iplimit $cekcek
+            exp=$(grep -w "#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
+            sed -i "/^#! $user $exp/,/^},{/d" /etc/xray/config.json
+            sed -i "/^### $user $exp/d" /etc/kyt/shadowsocks/.shadowsocks.db
+            systemctl restart xray >> /dev/null 2>&1
+            jum2=$(cat /tmp/ipshadowsocks.txt | wc -l)
+            rm -rf /etc/kyt/limit/shadowsocks/ip/$user
+            send_log "$user" "$iplimit" "$cekcek"
         else
             echo ""
         fi
@@ -228,18 +157,15 @@ function shadip() {
 
     sleep 900  # Tidur selama 15 menit
     unlock
-
-    for user in "${data[@]}"; do
-        send_unlock_notification $user shadowsocks "$ehh" $iplimit $cekcek
-    done
 }
 
+# Memanggil fungsi yang sesuai berdasarkan argumen yang diberikan
 if [[ ${1} == "vmip" ]]; then
     vmip
 elif [[ ${1} == "vlip" ]]; then
     vlip
 elif [[ ${1} == "trip" ]]; then
     trip
-elif [[ ${1} == "shadip" ]]; then
-    shadip
+elif [[ ${1} == "shadowsocks" ]]; then
+    shadowsocks
 fi
