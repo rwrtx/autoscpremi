@@ -82,34 +82,7 @@ function lock_user() {
     send_log "LOCK" $user "$ip_list" $protocol $iplimit $cekcek
 }
 
-# Fungsi untuk menghapus pengguna
-function delete_user() {
-    local user=$1
-    local protocol=$2
-    local ip_list=$3
-    local iplimit=$4
-    local cekcek=$5
-
-    case $protocol in
-        vmess)
-            sed -i "/^### $user/,/},{/d" /etc/xray/config.json
-            ;;
-        vless)
-            sed -i "/^#& $user/,/},{/d" /etc/xray/config.json
-            ;;
-        shadowsocks)
-            sed -i "/^#! $user/,/},{/d" /etc/xray/config.json
-            ;;
-    esac
-
-    # Mengirim log notifikasi pengguna dihapus
-    send_log "DELETED" $user "$ip_list" $protocol $iplimit $cekcek
-
-    # Restart layanan untuk menerapkan perubahan
-    systemctl restart xray
-}
-
-# Fungsi untuk mengirim notifikasi unlock
+# Fungsi untuk mengirim notifikasi unlock dan membuka kunci IP
 function send_unlock_notification() {
     local user=$1
     local protocol=$2
