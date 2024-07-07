@@ -75,7 +75,7 @@ function lock_user() {
 
     # Mengunci IP yang melanggar menggunakan iptables
     for ip in $ip_list; do
-        iptables -A INPUT -s $ip -j DROP
+        iptables -A INPUT -s $ip -m comment --comment "$user $protocol" -j DROP
     done
 
     # Mengirim log notifikasi pengguna terkunci
@@ -121,7 +121,7 @@ function send_unlock_notification() {
 
     # Membuka blokir IP menggunakan iptables
     for ip in $ip_list; do
-        iptables -D INPUT -s $ip -j DROP
+        iptables -D INPUT -s $ip -m comment --comment "$user $protocol" -j DROP
     done
 }
 
@@ -203,6 +203,40 @@ function trip() {
 
     echo -n > /var/log/xray/access.log
     sleep 30
+    data=( $(ls /etc/kyt/limit/trojan/ip) )
+
+    for user in "${data[@]}"; do
+        iplimit=$(cat /etc/kyt/limit/trojan/ip/$user)
+        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        cekcek=$(echo -e "$ehh" | wc -l)
+
+        if [[ $cekcek -gt $iplimit ]]; then
+            # Mengunci pengguna
+            lock_user $user trojan "$ehh" $iplimit $cekcek
+        else
+            echo ""
+        fi
+        sleep 0.1
+    done
+
+    sleep 900  # Tidur selama 15 menit
+    unlock
+
+    for user in "${data[@]}"; do
+        send_unlock_notification $user trojan "$ehh" $iplimit $cekcek
+    done
+}
+
+function shadip() {
+    if is_locked; then
+        echo "Akun terkunci. Tunggu 15 menit."
+        exit 0
+    fi
+
+    lock
+
+    echo -n > /var/log/xray/access.log
+    sleep 30
     data=( $(ls /etc/kyt/limit/shadowsocks/ip) )
 
     for user in "${data[@]}"; do
@@ -233,6 +267,6 @@ elif [[ ${1} == "vlip" ]]; then
     vlip
 elif [[ ${1} == "trip" ]]; then
     trip
-elif [[ ${1} == "shadowsocks" ]]; then
-    trip  # Perbaikan: Panggil trip untuk shadowsocks
+elif [[ ${1} == "shadip" ]]; then
+    shadip
 fi
