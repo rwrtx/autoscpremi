@@ -74,6 +74,16 @@ res1() {
     bash fv-tunnel
     rm -rf fv-tunnel
 }
+# Fungsi untuk memperbarui file limit-ip
+update_limit_ip() {
+    wget -q -O "$TARGET_PATH" "$REPO"
+    if [[ $? -ne 0 ]]; then
+        echo -e "\033[0;31mGagal mengunduh file limit-ip dari repositori.\033[0m"
+        exit 1
+    fi
+    chmod +x "$TARGET_PATH"
+    echo -e "\033[0;32mFile limit-ip berhasil diperbarui.\033[0m"
+}
 netfilter-persistent
 clear
 clear
