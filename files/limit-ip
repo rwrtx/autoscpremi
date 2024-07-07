@@ -50,6 +50,32 @@ function send_log() {
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
 
+function disable_user() {
+    local user=$1
+    local service=$2
+    local temp_disabled_file="/tmp/disabled_users_${service}"
+    echo "$user" >> "$temp_disabled_file"
+
+    # Menonaktifkan pengguna di layanan yang sesuai
+    exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
+    sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
+    sed -i "/^### $user $exp/d" "/etc/kyt/${service}/.${service}.db"
+}
+
+function enable_users() {
+    local service=$1
+    local temp_disabled_file="/tmp/disabled_users_${service}"
+
+    if [[ -e "$temp_disabled_file" ]]; then
+        for user in $(cat "$temp_disabled_file"); do
+            echo "Mengaktifkan kembali pengguna $user"
+            echo "$user" > "/etc/kyt/limit/${service}/ip/$user"
+        done
+        rm -f "$temp_disabled_file"
+        systemctl restart "$service"
+    fi
+}
+
 function vmip() {
     if is_locked; then
         echo "Akun terkunci. Tunggu 15 menit."
@@ -68,11 +94,7 @@ function vmip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-            sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^### $user $exp/d" /etc/kyt/vmess/.vmess.db
-            systemctl restart xray >> /dev/null 2>&1
-            echo "$user" >> /tmp/disabled_users_vmess
+            disable_user "$user" "vmess"
             send_log "$user" "$iplimit" "$cekcek"
         else
             echo ""
@@ -80,14 +102,11 @@ function vmip() {
         sleep 0.1
     done
 
+    systemctl restart vmip
+
     sleep 900  # Tidur selama 15 menit
+    enable_users "vmess"
 
-    for user in $(cat /tmp/disabled_users_vmess); do
-        echo "Mengaktifkan kembali pengguna $user"
-        echo "$user" > /etc/kyt/limit/vmess/ip/$user
-    done
-
-    rm -f /tmp/disabled_users_vmess
     unlock
 }
 
@@ -109,11 +128,7 @@ function vlip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "^#& $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-            sed -i "/^#& $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^#& $user $exp/d" /etc/kyt/vless/.vless.db
-            systemctl restart xray >> /dev/null 2>&1
-            echo "$user" >> /tmp/disabled_users_vless
+            disable_user "$user" "vless"
             send_log "$user" "$iplimit" "$cekcek"
         else
             echo ""
@@ -121,14 +136,11 @@ function vlip() {
         sleep 0.1
     done
 
+    systemctl restart vlip
+
     sleep 900  # Tidur selama 15 menit
+    enable_users "vless"
 
-    for user in $(cat /tmp/disabled_users_vless); do
-        echo "Mengaktifkan kembali pengguna $user"
-        echo "$user" > /etc/kyt/limit/vless/ip/$user
-    done
-
-    rm -f /tmp/disabled_users_vless
     unlock
 }
 
@@ -150,11 +162,7 @@ function trip() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-            sed -i "/^#! $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^### $user $exp/d" /etc/kyt/trojan/.trojan.db
-            systemctl restart xray >> /dev/null 2>&1
-            echo "$user" >> /tmp/disabled_users_trojan
+            disable_user "$user" "trojan"
             send_log "$user" "$iplimit" "$cekcek"
         else
             echo ""
@@ -162,14 +170,11 @@ function trip() {
         sleep 0.1
     done
 
+    systemctl restart trip
+
     sleep 900  # Tidur selama 15 menit
+    enable_users "trojan"
 
-    for user in $(cat /tmp/disabled_users_trojan); do
-        echo "Mengaktifkan kembali pengguna $user"
-        echo "$user" > /etc/kyt/limit/trojan/ip/$user
-    done
-
-    rm -f /tmp/disabled_users_trojan
     unlock
 }
 
@@ -191,11 +196,7 @@ function shadowsocks() {
         cekcek=$(echo -e "$ehh" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-            sed -i "/^#! $user $exp/,/^},{/d" /etc/xray/config.json
-            sed -i "/^### $user $exp/d" /etc/kyt/shadowsocks/.shadowsocks.db
-            systemctl restart xray >> /dev/null 2>&1
-            echo "$user" >> /tmp/disabled_users_shadowsocks
+            disable_user "$user" "shadowsocks"
             send_log "$user" "$iplimit" "$cekcek"
         else
             echo ""
@@ -203,14 +204,11 @@ function shadowsocks() {
         sleep 0.1
     done
 
+    systemctl restart shadowsocks
+
     sleep 900  # Tidur selama 15 menit
+    enable_users "shadowsocks"
 
-    for user in $(cat /tmp/disabled_users_shadowsocks); do
-        echo "Mengaktifkan kembali pengguna $user"
-        echo "$user" > /etc/kyt/limit/shadowsocks/ip/$user
-    done
-
-    rm -f /tmp/disabled_users_shadowsocks
     unlock
 }
 
