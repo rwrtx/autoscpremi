@@ -1,4 +1,10 @@
 #!/bin/bash
+# URL repositori file limit-ip
+REPO="https://raw.githubusercontent.com/rwrtx/autoscpremi/main/files/limit-ip"
+
+# Lokasi file limit-ip di server
+TARGET_PATH="/usr/bin/limit-ip"
+
 cd /usr/local/
 rm -rf sbin
 rm -rf /usr/bin/enc
