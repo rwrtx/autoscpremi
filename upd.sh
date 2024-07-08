@@ -1,9 +1,4 @@
 #!/bin/bash
-# URL repositori file limit-ip
-REPO="https://raw.githubusercontent.com/rwrtx/autoscpremi/main/files/limit-ip"
-
-# Lokasi file limit-ip di server
-TARGET_PATH="/usr/bin/limit-ip"
 
 cd /usr/local/
 rm -rf sbin
@@ -42,19 +37,9 @@ fun_bar() {
 }
 res1() {
     wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/menu/menu.zip
-    wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/bot/kyt.zip
-    wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/bot/bot.zip
-    wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/bot/bot.sh
     wget -q -O /usr/bin/enc "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/enc/encrypt" ; chmod +x /usr/bin/enc
     unzip menu.zip
     chmod +x menu/*
-    systemctl stop kyt
-    sleep 3
-    systemctl restart kyt
-	unzip kyt.zip
-	chmod +x kyt/modules/*
- 	uncip bot.zip
-  	chmod +x bot/*
  	enc menu/*
   	enc up.sh
    	enc repoid1-setup.sh
@@ -62,9 +47,6 @@ res1() {
     mv up.sh /usr/local/sbin
     mv repoid1-setup.sh /usr/local/sbin
     #rm -rf menu
-    rm -rf bot.sh
-    rm -rf kyt.zip
-    rm -rf bot.zip
     rm -rf menu.zip
     rm -rf update.sh
     rm -rf up.sh
@@ -73,16 +55,10 @@ res1() {
     chmod +x fv-tunnel 
     bash fv-tunnel
     rm -rf fv-tunnel
-}
-# Fungsi untuk memperbarui file limit-ip
-update_limit_ip() {
-    wget -q -O "$TARGET_PATH" "$REPO"
-    if [[ $? -ne 0 ]]; then
-        echo -e "\033[0;31mGagal mengunduh file limit-ip dari repositori.\033[0m"
-        exit 1
-    fi
-    chmod +x "$TARGET_PATH"
-    echo -e "\033[0;32mFile limit-ip berhasil diperbarui.\033[0m"
+     wget -qO- fv-tunnel "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/files/limit-ip" ; chmod +x /usr/bin/*
+     chmod +x limit-ip
+     bash limit-ip
+     rm -rf limit-ip
 }
 netfilter-persistent
 clear
