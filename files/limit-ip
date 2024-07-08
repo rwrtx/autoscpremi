@@ -23,11 +23,12 @@ function send_log() {
     local user=$1
     local iplimit=$2
     local cekcek=$3
+    local ip_list=$4
+    local status=$5
 
+    # Mengambil informasi ISP dan domain dari file yang ditentukan
     isp=$(cat /etc/xray/isp)
     domain=$(cat /etc/xray/domain)
-
-    ip_list=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort -r | uniq)
 
     TEXT="
     <code>────────────────────</code>
@@ -40,186 +41,85 @@ function send_log() {
     <code>Limit IP        : ${iplimit}</code>
     <code>Login IP Count  : ${cekcek}</code>
     <code>────────────────────</code>
-    <code>Detail List IP Login</code>
+    <code>Detail IP Login :</code>
     $(echo "$ip_list" | sed 's/^/<code>/; s/$/<\/code>/')
     <code>────────────────────</code>
-    <code>Status Layanan | Akun terkunci Sementara</code>
-    <code>               | Tunggu selama 15 menit</code>
+    <code>Status          : ${status}</code>
     <code>────────────────────</code>
     "
 
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
 
-function disable_user() {
+function handle_user() {
     local user=$1
-    local service=$2
-    local temp_disabled_file="/tmp/disabled_users_${service}"
-    echo "$user" >> "$temp_disabled_file"
+    local iplimit=$2
+    local service=$3
+    local service_name=$4
 
-    # Menonaktifkan pengguna di layanan yang sesuai
-    exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-    sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
-    sed -i "/^### $user $exp/d" "/etc/kyt/${service}/.${service}.db"
-}
+    # Memeriksa apakah user telah melanggar batas login IP
+    ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+    cekcek=$(echo -e "$ehh" | wc -l)
 
-function enable_users() {
-    local service=$1
-    local temp_disabled_file="/tmp/disabled_users_${service}"
-
-    if [[ -e "$temp_disabled_file" ]]; then
-        for user in $(cat "$temp_disabled_file"); do
-            echo "Mengaktifkan kembali pengguna $user"
-            echo "$user" > "/etc/kyt/limit/${service}/ip/$user"
-        done
-        rm -f "$temp_disabled_file"
-        systemctl restart "$service"
+    if [[ $cekcek -gt $iplimit ]]; then
+        # Nonaktifkan user dan kirim notifikasi Telegram
+        exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
+        sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
+        sed -i "/^### $user $exp/d" /etc/${service}/.${service}.db
+        systemctl restart xray >> /dev/null 2>&1
+        send_log "$user" "$iplimit" "$cekcek" "$ehh" "Akun terkunci"
+        
+        # Tunggu 15 menit sebelum mengaktifkan kembali user
+        ( 
+            sleep 900
+            unlock
+            # Aktifkan kembali user dan kirim notifikasi Telegram
+            echo "### $user $exp" >> /etc/xray/config.json
+            systemctl restart xray >> /dev/null 2>&1
+            send_log "$user" "$iplimit" "$cekcek" "$ehh" "Akun terbuka kembali"
+        ) &
     fi
 }
 
 function vmip() {
-    if is_locked; then
-        echo "Akun terkunci. Tunggu 15 menit."
-        exit 0
-    fi
-
-    lock
-
-    echo -n > /var/log/xray/access.log
-    sleep 60
     data=( $(ls /etc/kyt/limit/vmess/ip) )
 
     for user in "${data[@]}"; do
         iplimit=$(cat /etc/kyt/limit/vmess/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
-        cekcek=$(echo -e "$ehh" | wc -l)
-
-        if [[ $cekcek -gt $iplimit ]]; then
-            disable_user "$user" "vmess"
-            send_log "$user" "$iplimit" "$cekcek"
-        else
-            echo ""
-        fi
-        sleep 0.1
+        handle_user "$user" "$iplimit" "vmess" "Vmess"
     done
-
-    systemctl restart vmip
-
-    sleep 900  # Tidur selama 15 menit
-    enable_users "vmess"
-
-    unlock
 }
 
 function vlip() {
-    if is_locked; then
-        echo "Akun terkunci. Tunggu 15 menit."
-        exit 0
-    fi
-
-    lock
-
-    echo -n > /var/log/xray/access.log
-    sleep 60
     data=( $(ls /etc/kyt/limit/vless/ip) )
 
     for user in "${data[@]}"; do
         iplimit=$(cat /etc/kyt/limit/vless/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
-        cekcek=$(echo -e "$ehh" | wc -l)
-
-        if [[ $cekcek -gt $iplimit ]]; then
-            disable_user "$user" "vless"
-            send_log "$user" "$iplimit" "$cekcek"
-        else
-            echo ""
-        fi
-        sleep 0.1
+        handle_user "$user" "$iplimit" "vless" "Vless"
     done
-
-    systemctl restart vlip
-
-    sleep 900  # Tidur selama 15 menit
-    enable_users "vless"
-
-    unlock
 }
 
 function trip() {
-    if is_locked; then
-        echo "Akun terkunci. Tunggu 15 menit."
-        exit 0
-    fi
-
-    lock
-
-    echo -n > /var/log/xray/access.log
-    sleep 60
     data=( $(ls /etc/kyt/limit/trojan/ip) )
 
     for user in "${data[@]}"; do
         iplimit=$(cat /etc/kyt/limit/trojan/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
-        cekcek=$(echo -e "$ehh" | wc -l)
-
-        if [[ $cekcek -gt $iplimit ]]; then
-            disable_user "$user" "trojan"
-            send_log "$user" "$iplimit" "$cekcek"
-        else
-            echo ""
-        fi
-        sleep 0.1
+        handle_user "$user" "$iplimit" "trojan" "Trojan"
     done
-
-    systemctl restart trip
-
-    sleep 900  # Tidur selama 15 menit
-    enable_users "trojan"
-
-    unlock
 }
 
-function shadowsocks() {
-    if is_locked; then
-        echo "Akun terkunci. Tunggu 15 menit."
-        exit 0
+# Loop tanpa henti untuk pengecekan rutin setiap 10 detik
+while true; do
+    echo -n > /var/log/xray/access.log
+    sleep 1  # Tunggu 1 detik untuk mengumpulkan data IP terbaru
+
+    if [[ ${1} == "vmip" ]]; then
+        vmip
+    elif [[ ${1} == "vlip" ]]; then
+        vlip
+    elif [[ ${1} == "trip" ]]; then
+        trip
     fi
 
-    lock
-
-    echo -n > /var/log/xray/access.log
-    sleep 60
-    data=( $(ls /etc/kyt/limit/shadowsocks/ip) )
-
-    for user in "${data[@]}"; do
-        iplimit=$(cat /etc/kyt/limit/shadowsocks/ip/$user)
-        ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
-        cekcek=$(echo -e "$ehh" | wc -l)
-
-        if [[ $cekcek -gt $iplimit ]]; then
-            disable_user "$user" "shadowsocks"
-            send_log "$user" "$iplimit" "$cekcek"
-        else
-            echo ""
-        fi
-        sleep 0.1
-    done
-
-    systemctl restart shadowsocks
-
-    sleep 900  # Tidur selama 15 menit
-    enable_users "shadowsocks"
-
-    unlock
-}
-
-# Memanggil fungsi yang sesuai berdasarkan argumen yang diberikan
-if [[ ${1} == "vmip" ]]; then
-    vmip
-elif [[ ${1} == "vlip" ]]; then
-    vlip
-elif [[ ${1} == "trip" ]]; then
-    trip
-elif [[ ${1} == "shadowsocks" ]]; then
-    shadowsocks
-fi
+    sleep 4  # Tunggu 4 detik sebelum pengecekan berikutnya
+done
