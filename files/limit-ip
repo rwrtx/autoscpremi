@@ -3,19 +3,63 @@
 function send_log() {
     KEY="7253550837:AAEZbitnFTqwNmBqCuvybJfaxHKgYb7FrZ4"
     CHATID="6579436198"
-  #CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
-  #KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
+  #CCHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
+  #KKEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
   TIME="10"
   URL="https://api.telegram.org/bot$KEY/sendMessage"
+  isp=$(cat /etc/xray/isp)
+  domain=$(cat /etc/xray/domain)
+  status="$1"
   TEXT="
-  <code>────────────────────</code>
-  <b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
-  <code>────────────────────</code>
-  <code>Username  : </code><code>$user</code>
-  <code>Limit Ip  : </code><code>$iplimit</code>
-  <code>────────────────────</code>
-  "
+<code>────────────────────</code>
+<b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
+<code>────────────────────</code>
+<code>ISP    : ${isp}</code>
+<code>Domain : ${domain}</code>
+<code>────────────────────</code>
+<code>Username        : ${user}</code>
+<code>Limit IP        : ${iplimit}</code>
+<code>Login IP Count  : ${cekcek}</code>
+<code>────────────────────</code>
+<code>Detail IP Login : </code>
+$(echo -e "$ehh" | sed 's/^/<code>/;s/$/<\/code>/')
+<code>────────────────────</code>
+<code> ${status}</code>
+<code>────────────────────</code>
+"
   curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+}
+
+function backup_and_remove_user() {
+  exp=$1
+  user=$2
+  config_file=$3
+  db_file=$4
+  backup_file="/tmp/${user}_backup"
+
+  # Backup the user configuration
+  grep -w "^### $user $exp" $config_file > $backup_file
+  grep -w "^### $user $exp" $db_file >> $backup_file
+
+  # Remove the user configuration
+  sed -i "/^### $user $exp/,/^},{/d" $config_file
+  sed -i "/^### $user $exp/d" $db_file
+}
+
+function restore_user() {
+  user=$1
+  config_file=$2
+  db_file=$3
+  backup_file="/tmp/${user}_backup"
+
+  # Restore the user configuration
+  cat $backup_file | while read -r line; do
+    echo "$line" >> $config_file
+    echo "$line" >> $db_file
+  done
+
+  # Remove the backup file
+  rm -f $backup_file
 }
 
 function vmip(){
@@ -31,36 +75,15 @@ function vmip(){
     cekcek=$(echo -e "$ehh" | wc -l)
     if [[ $cekcek -gt $iplimit ]]; then
       exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-      
-      # Simpan konfigurasi sebelum dihapus
-      sed -n "/^### $user $exp/,/^},{/p" /etc/xray/config.json > /tmp/$user.xray.backup
-      sed -n "/^### $user $exp/p" /etc/vmess/.vmess.db > /tmp/$user.vmess.backup
-      
-      # Hapus konfigurasi pengguna dari file konfigurasi Xray dan database Vmess
-      sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
-      sed -i "/^### $user $exp/d" /etc/vmess/.vmess.db
-      
-      # Restart layanan Xray
+      backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
       systemctl restart xray >> /dev/null 2>&1
-      
-      # Hapus file batas IP pengguna
+      jum2=$(cat /tmp/ipvmess.txt | wc -l)
       rm -rf /etc/kyt/limit/vmess/ip/$user
-      
-      # Kirim log notifikasi ke bot Telegram
-      send_log
-      
-      # Tunggu 15 menit sebelum mengembalikan konfigurasi
+      send_log "Terkunci Selama 15 Menit"
       sleep 900
-      
-      # Kembalikan konfigurasi yang disimpan sebelumnya
-      cat /tmp/$user.xray.backup >> /etc/xray/config.json
-      cat /tmp/$user.vmess.backup >> /etc/vmess/.vmess.db
-      
-      # Restart layanan Xray lagi untuk menerapkan perubahan
+      restore_user "$user" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
       systemctl restart xray >> /dev/null 2>&1
-      
-      # Hapus file backup setelah selesai
-      rm -f /tmp/$user.xray.backup /tmp/$user.vmess.backup
+      send_log "Terunlock"
     else
       echo ""
     fi
@@ -81,36 +104,15 @@ function vlip(){
     cekcek=$(echo -e "$ehh" | wc -l)
     if [[ $cekcek -gt $iplimit ]]; then
       exp=$(grep -w "^#& $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-      
-      # Simpan konfigurasi sebelum dihapus
-      sed -n "/^#& $user $exp/,/^},{/p" /etc/xray/config.json > /tmp/$user.xray.backup
-      sed -n "/^### $user $exp/p" /etc/vless/.vless.db > /tmp/$user.vless.backup
-      
-      # Hapus konfigurasi pengguna dari file konfigurasi Xray dan database Vless
-      sed -i "/^#& $user $exp/,/^},{/d" /etc/xray/config.json
-      sed -i "/^### $user $exp/d" /etc/vless/.vless.db
-      
-      # Restart layanan Xray
+      backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/vless/.vless.db"
       systemctl restart xray >> /dev/null 2>&1
-      
-      # Hapus file batas IP pengguna
+      jum2=$(cat /tmp/ipvless.txt | wc -l)
       rm -rf /etc/kyt/limit/vless/ip/$user
-      
-      # Kirim log notifikasi ke bot Telegram
-      send_log
-      
-      # Tunggu 15 menit sebelum mengembalikan konfigurasi
+      send_log "Terkunci Selama 15 Menit"
       sleep 900
-      
-      # Kembalikan konfigurasi yang disimpan sebelumnya
-      cat /tmp/$user.xray.backup >> /etc/xray/config.json
-      cat /tmp/$user.vless.backup >> /etc/vless/.vless.db
-      
-      # Restart layanan Xray lagi untuk menerapkan perubahan
+      restore_user "$user" "/etc/xray/config.json" "/etc/vless/.vless.db"
       systemctl restart xray >> /dev/null 2>&1
-      
-      # Hapus file backup setelah selesai
-      rm -f /tmp/$user.xray.backup /tmp/$user.vless.backup
+      send_log "Terunlock"
     else
       echo ""
     fi
@@ -131,36 +133,15 @@ function trip(){
     cekcek=$(echo -e "$ehh" | wc -l)
     if [[ $cekcek -gt $iplimit ]]; then
       exp=$(grep -w "^#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-      
-      # Simpan konfigurasi sebelum dihapus
-      sed -n "/^#! $user $exp/,/^},{/p" /etc/xray/config.json > /tmp/$user.xray.backup
-      sed -n "/^### $user $exp/p" /etc/trojan/.trojan.db > /tmp/$user.trojan.backup
-      
-      # Hapus konfigurasi pengguna dari file konfigurasi Xray dan database Trojan
-      sed -i "/^#! $user $exp/,/^},{/d" /etc/xray/config.json
-      sed -i "/^### $user $exp/d" /etc/trojan/.trojan.db
-      
-      # Restart layanan Xray
+      backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
       systemctl restart xray >> /dev/null 2>&1
-      
-      # Hapus file batas IP pengguna
+      jum2=$(cat /tmp/iptrojan.txt | wc -l)
       rm -rf /etc/kyt/limit/trojan/ip/$user
-      
-      # Kirim log notifikasi ke bot Telegram
-      send_log
-      
-      # Tunggu 15 menit sebelum mengembalikan konfigurasi
+      send_log "Terkunci Selama 15 Menit"
       sleep 900
-      
-      # Kembalikan konfigurasi yang disimpan sebelumnya
-      cat /tmp/$user.xray.backup >> /etc/xray/config.json
-      cat /tmp/$user.trojan.backup >> /etc/trojan/.trojan.db
-      
-      # Restart layanan Xray lagi untuk menerapkan perubahan
+      restore_user "$user" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
       systemctl restart xray >> /dev/null 2>&1
-      
-      # Hapus file backup setelah selesai
-      rm -f /tmp/$user.xray.backup /tmp/$user.trojan.backup
+      send_log "Terunlock"
     else
       echo ""
     fi
