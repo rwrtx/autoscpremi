@@ -55,10 +55,6 @@ res1() {
     chmod +x fv-tunnel 
     bash fv-tunnel
     rm -rf fv-tunnel
-     wget -qO- fv-tunnel "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/files/limit-ip" ; chmod +x /usr/bin/*
-     chmod +x limit-ip
-     bash limit-ip
-     rm -rf limit-ip
 }
 netfilter-persistent
 clear
