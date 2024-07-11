@@ -47,11 +47,11 @@ Script Repo2 VPS IPV4 Rekomendasi
 ```
 apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/main.sh && chmod +x main.sh && ./main.sh
 ```
-
+#
 IPV6
 Script Repo1 VPS IPV6 Rekomendasi
 ```
-apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/repoid1-setup.sh && chmod +x repoid1-setup.sh && ./repoid1-setup.sh
+apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/repoid1-setupV6.sh && chmod +x repoid1-setupV6.sh && ./repoid1-setupV6.sh
 ```
 ## UPDATE SCRIPT
 Masukkan perintah dibawah jika terdapat informasi pembaruan Script untuk versi yang akan datang
