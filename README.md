@@ -35,18 +35,24 @@ apt update && apt upgrade -y && update-grub && sleep 2 && reboot
 Silahkan Pilih Dan Masukkan perintah dibawah untuk menginstall Autoscript Premium by :
 <h2 align="center">꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂</h2>
 
-Script Repo1 VPS SG Rekomendasi
+IPV4
+Script Repo1 VPS IPV4 Rekomendasi
 ```
 apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/repoid1-setup.sh && chmod +x repoid1-setup.sh && ./repoid1-setup.sh
 ```
 
 or
 
-Script Repo2 VPS ID Rekomendasi
+Script Repo2 VPS IPV4 Rekomendasi
 ```
 apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/main.sh && chmod +x main.sh && ./main.sh
 ```
 
+IPV6
+Script Repo1 VPS IPV6 Rekomendasi
+```
+apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/repoid1-setup.sh && chmod +x repoid1-setup.sh && ./repoid1-setup.sh
+```
 ## UPDATE SCRIPT
 Masukkan perintah dibawah jika terdapat informasi pembaruan Script untuk versi yang akan datang
 ```
