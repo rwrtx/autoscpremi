@@ -36,20 +36,20 @@ Silahkan Pilih Dan Masukkan perintah dibawah untuk menginstall Autoscript Premiu
 <h2 align="center">꧁༒༺ 𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆 ༻༒꧂</h2>
 
 ## INSTALL SCRIPT IPV4
-Script Repo1 VPS IPV4 Rekomendasi
+Script Repositori 1
 ```
 apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/repoid1-setup.sh && chmod +x repoid1-setup.sh && ./repoid1-setup.sh
 ```
 
 or
 
-Script Repo2 VPS IPV4 Rekomendasi
+Script Repositori 2
 ```
 apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/main.sh && chmod +x main.sh && ./main.sh
 ```
 
 ## INSTALL SCRIPT IPV6
-Script Repo1 VPS IPV6 Rekomendasi
+Script Repositori VPS IPV6
 ```
 apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/repoid1-setupV6.sh && chmod +x repoid1-setupV6.sh && ./repoid1-setupV6.sh
 ```
