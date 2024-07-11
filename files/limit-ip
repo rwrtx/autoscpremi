@@ -3,14 +3,12 @@
 function send_log() {
     KEY="7253550837:AAEZbitnFTqwNmBqCuvybJfaxHKgYb7FrZ4"
     CHATID="6579436198"
-  #CCHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
-  #KKEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
-  TIME="10"
-  URL="https://api.telegram.org/bot$KEY/sendMessage"
-  isp=$(cat /etc/xray/isp)
-  domain=$(cat /etc/xray/domain)
-  status="$1"
-  TEXT="
+    TIME="10"
+    URL="https://api.telegram.org/bot$KEY/sendMessage"
+    isp=$(cat /etc/xray/isp)
+    domain=$(cat /etc/xray/domain)
+    status="$1"
+    TEXT="
 <code>────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
 <code>────────────────────</code>
@@ -27,132 +25,129 @@ $(echo -e "$ehh" | sed 's/^/<code>/;s/$/<\/code>/')
 <code> ${status}</code>
 <code>────────────────────</code>
 "
-  curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+    curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
 
 function backup_and_remove_user() {
-  exp=$1
-  user=$2
-  config_file=$3
-  db_file=$4
-  backup_file="/tmp/${user}_backup"
+    exp=$1
+    user=$2
+    config_file=$3
+    db_file=$4
+    backup_file="/tmp/${user}_backup"
 
-  # Backup the user configuration
-  grep -w "^### $user $exp" $config_file > $backup_file
-  grep -w "^### $user $exp" $db_file >> $backup_file
+    # Backup the user configuration
+    grep -w "^### $user $exp" $config_file > $backup_file
+    grep -w "^### $user $exp" $db_file >> $backup_file
 
-  # Remove the user configuration
-  sed -i "/^### $user $exp/,/^},{/d" $config_file
-  sed -i "/^### $user $exp/d" $db_file
+    # Remove the user configuration
+    sed -i "/^### $user $exp/,/^},{/d" $config_file
+    sed -i "/^### $user $exp/d" $db_file
 }
 
 function restore_user() {
-  user=$1
-  config_file=$2
-  db_file=$3
-  backup_file="/tmp/${user}_backup"
+    user=$1
+    config_file=$2
+    db_file=$3
+    backup_file="/tmp/${user}_backup"
 
-  # Restore the user configuration
-  cat $backup_file | while read -r line; do
-    echo "$line" >> $config_file
-    echo "$line" >> $db_file
-  done
+    # Restore the user configuration
+    while read -r line; do
+        echo "$line" >> $config_file
+        echo "$line" >> $db_file
+    done < $backup_file
 
-  # Remove the backup file
-  rm -f $backup_file
+    # Remove the backup file
+    rm -f $backup_file
 }
 
-function vmip(){
-  # LIMITVMESSIP
-  echo -n > /var/log/xray/access.log
-  sleep 1
-  data=( `ls /etc/kyt/limit/vmess/ip`)
-  # Decrypted By YADDY D PHREAKER
-  for user in "${data[@]}"
-  do
-    iplimit=$(cat /etc/kyt/limit/vmess/ip/$user)
-    ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
-    cekcek=$(echo -e "$ehh" | wc -l)
-    if [[ $cekcek -gt $iplimit ]]; then
-      exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-      backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
-      systemctl restart xray >> /dev/null 2>&1
-      jum2=$(cat /tmp/ipvmess.txt | wc -l)
-      rm -rf /etc/kyt/limit/vmess/ip/$user
-      send_log "Terkunci Selama 15 Menit"
-      sleep 900
-      restore_user "$user" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
-      systemctl restart xray >> /dev/null 2>&1
-      send_log "Terunlock"
-    else
-      echo ""
-    fi
-    sleep 0.1
-  done
+function vmip() {
+    # LIMITVMESSIP
+    echo -n > /var/log/xray/access.log
+    sleep 1
+    data=( $(ls /etc/kyt/limit/vmess/ip) )
+    for user in "${data[@]}"
+    do
+        iplimit=$(cat /etc/kyt/limit/vmess/ip/$user)
+        ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        cekcek=$(echo -e "$ehh" | wc -l)
+        if [[ $cekcek -gt $iplimit ]]; then
+            exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
+            backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
+            systemctl restart xray >> /dev/null 2>&1
+            jum2=$(cat /tmp/ipvmess.txt | wc -l)
+            rm -rf /etc/kyt/limit/vmess/ip/$user
+            send_log "Terkunci Selama 15 Menit"
+            sleep 900
+            restore_user "$user" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
+            systemctl restart xray >> /dev/null 2>&1
+            send_log "Terunlock"
+        else
+            echo ""
+        fi
+        sleep 0.1
+    done
 }
 
-function vlip(){
-  # LIMITVLESSIP
-  echo -n > /var/log/xray/access.log
-  sleep 1
-  data=( `ls /etc/kyt/limit/vless/ip`)
-  # Decrypted By YADDY D PHREAKER
-  for user in "${data[@]}"
-  do
-    iplimit=$(cat /etc/kyt/limit/vless/ip/$user)
-    ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
-    cekcek=$(echo -e "$ehh" | wc -l)
-    if [[ $cekcek -gt $iplimit ]]; then
-      exp=$(grep -w "^#& $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-      backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/vless/.vless.db"
-      systemctl restart xray >> /dev/null 2>&1
-      jum2=$(cat /tmp/ipvless.txt | wc -l)
-      rm -rf /etc/kyt/limit/vless/ip/$user
-      send_log "Terkunci Selama 15 Menit"
-      sleep 900
-      restore_user "$user" "/etc/xray/config.json" "/etc/vless/.vless.db"
-      systemctl restart xray >> /dev/null 2>&1
-      send_log "Terunlock"
-    else
-      echo ""
-    fi
-    sleep 0.1
-  done
+function vlip() {
+    # LIMITVLESSIP
+    echo -n > /var/log/xray/access.log
+    sleep 1
+    data=( $(ls /etc/kyt/limit/vless/ip) )
+    for user in "${data[@]}"
+    do
+        iplimit=$(cat /etc/kyt/limit/vless/ip/$user)
+        ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        cekcek=$(echo -e "$ehh" | wc -l)
+        if [[ $cekcek -gt $iplimit ]]; then
+            exp=$(grep -w "^#& $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
+            backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/vless/.vless.db"
+            systemctl restart xray >> /dev/null 2>&1
+            jum2=$(cat /tmp/ipvless.txt | wc -l)
+            rm -rf /etc/kyt/limit/vless/ip/$user
+            send_log "Terkunci Selama 15 Menit"
+            sleep 900
+            restore_user "$user" "/etc/xray/config.json" "/etc/vless/.vless.db"
+            systemctl restart xray >> /dev/null 2>&1
+            send_log "Terunlock"
+        else
+            echo ""
+        fi
+        sleep 0.1
+    done
 }
 
-function trip(){
-  # LIMITIPTROJAN
-  echo -n > /var/log/xray/access.log
-  sleep 1
-  data=( `ls /etc/kyt/limit/trojan/ip`)
-  # Decrypted By YADDY D PHREAKER
-  for user in "${data[@]}"
-  do
-    iplimit=$(cat /etc/kyt/limit/trojan/ip/$user)
-    ehh=$(cat /var/log/xray/access.log | grep "$user" | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
-    cekcek=$(echo -e "$ehh" | wc -l)
-    if [[ $cekcek -gt $iplimit ]]; then
-      exp=$(grep -w "^#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
-      backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
-      systemctl restart xray >> /dev/null 2>&1
-      jum2=$(cat /tmp/iptrojan.txt | wc -l)
-      rm -rf /etc/kyt/limit/trojan/ip/$user
-      send_log "Terkunci Selama 15 Menit"
-      sleep 900
-      restore_user "$user" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
-      systemctl restart xray >> /dev/null 2>&1
-      send_log "Terunlock"
-    else
-      echo ""
-    fi
-    sleep 0.1
-  done
+function trip() {
+    # LIMITIPTROJAN
+    echo -n > /var/log/xray/access.log
+    sleep 1
+    data=( $(ls /etc/kyt/limit/trojan/ip) )
+    for user in "${data[@]}"
+    do
+        iplimit=$(cat /etc/kyt/limit/trojan/ip/$user)
+        ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        cekcek=$(echo -e "$ehh" | wc -l)
+        if [[ $cekcek -gt $iplimit ]]; then
+            exp=$(grep -w "^#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
+            backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
+            systemctl restart xray >> /dev/null 2>&1
+            jum2=$(cat /tmp/iptrojan.txt | wc -l)
+            rm -rf /etc/kyt/limit/trojan/ip/$user
+            send_log "Terkunci Selama 15 Menit"
+            sleep 900
+            restore_user "$user" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
+            systemctl restart xray >> /dev/null 2>&1
+            send_log "Terunlock"
+        else
+            echo ""
+        fi
+        sleep 0.1
+    done
 }
 
 if [[ ${1} == "vmip" ]]; then
-  vmip
+    vmip
 elif [[ ${1} == "vlip" ]]; then
-  vlip
+    vlip
 elif [[ ${1} == "trip" ]]; then
-  trip
+    trip
 fi
