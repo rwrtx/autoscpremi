@@ -51,10 +51,6 @@ res1() {
     rm -rf update.sh
     rm -rf up.sh
     rm -rf upd.sh
-    wget -qO- fv-tunnel "https://raw.githubusercontent.com/rwrtx/autoscmain/main/config/fv-tunnel" 
-    chmod +x fv-tunnel 
-    bash fv-tunnel
-    rm -rf fv-tunnel
 }
 netfilter-persistent
 clear
