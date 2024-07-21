@@ -1,5 +1,19 @@
 #!/bin/bash
 
+LOCK_FILE="/tmp/multi_login_lock"
+
+function is_locked() {
+    [[ -e "$LOCK_FILE" ]]
+}
+
+function lock() {
+    touch "$LOCK_FILE"
+}
+
+function unlock() {
+    rm -f "$LOCK_FILE"
+}
+
 function send_log() {
     KEY="7253550837:AAEZbitnFTqwNmBqCuvybJfaxHKgYb7FrZ4"
     CHATID="6579436198"
@@ -61,6 +75,12 @@ function restore_user() {
 }
 
 function vmip() {
+    if is_locked; then
+        echo "Another process is already running. Exiting..."
+        exit 1
+    fi
+    lock
+
     # LIMITVMESSIP
     echo -n > /var/log/xray/access.log
     sleep 1
@@ -86,9 +106,17 @@ function vmip() {
         fi
         sleep 0.1
     done
+
+    unlock
 }
 
 function vlip() {
+    if is_locked; then
+        echo "Another process is already running. Exiting..."
+        exit 1
+    fi
+    lock
+
     # LIMITVLESSIP
     echo -n > /var/log/xray/access.log
     sleep 1
@@ -114,9 +142,17 @@ function vlip() {
         fi
         sleep 0.1
     done
+
+    unlock
 }
 
 function trip() {
+    if is_locked; then
+        echo "Another process is already running. Exiting..."
+        exit 1
+    fi
+    lock
+
     # LIMITIPTROJAN
     echo -n > /var/log/xray/access.log
     sleep 1
@@ -142,6 +178,8 @@ function trip() {
         fi
         sleep 0.1
     done
+
+    unlock
 }
 
 if [[ ${1} == "vmip" ]]; then
