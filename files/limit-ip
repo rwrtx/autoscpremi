@@ -15,14 +15,14 @@ function unlock() {
 }
 
 function send_log() {
-    KEY="7253550837:AAEZbitnFTqwNmBqCuvybJfaxHKgYb7FrZ4"
-    CHATID="6579436198"
-    TIME="10"
-    URL="https://api.telegram.org/bot$KEY/sendMessage"
-    isp=$(cat /etc/xray/isp)
-    domain=$(cat /etc/xray/domain)
-    status="$1"
-    TEXT="
+CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
+KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
+TIME="10"
+URL="https://api.telegram.org/bot$KEY/sendMessage"
+isp=$(cat /etc/xray/isp)
+domain=$(cat /etc/xray/domain)
+status="$1"
+TEXT="
 <code>────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
 <code>────────────────────</code>
