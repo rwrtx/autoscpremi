@@ -15,18 +15,13 @@ function unlock() {
 }
 
 function send_log() {
-    local user=$1
-    local iplimit=$2
-    local cekcek=$3
-    local ehh=$4
-    local status=$5
-    
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
     TIME="10"
     URL="https://api.telegram.org/bot$KEY/sendMessage"
     isp=$(cat /etc/xray/isp)
     domain=$(cat /etc/xray/domain)
+    status="$1"
     TEXT="
 <code>────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
@@ -48,11 +43,11 @@ $(echo -e "$ehh" | sed 's/^/<code>/;s/$/<\/code>/')
 }
 
 function backup_and_remove_user() {
-    local exp=$1
-    local user=$2
-    local config_file=$3
-    local db_file=$4
-    local backup_file="/tmp/${user}_backup"
+    exp=$1
+    user=$2
+    config_file=$3
+    db_file=$4
+    backup_file="/tmp/${user}_backup"
 
     # Backup the user configuration
     grep -w "^### $user $exp" $config_file > $backup_file
@@ -64,10 +59,10 @@ function backup_and_remove_user() {
 }
 
 function restore_user() {
-    local user=$1
-    local config_file=$2
-    local db_file=$3
-    local backup_file="/tmp/${user}_backup"
+    user=$1
+    config_file=$2
+    db_file=$3
+    backup_file="/tmp/${user}_backup"
 
     # Restore the user configuration
     while read -r line; do
@@ -79,49 +74,87 @@ function restore_user() {
     rm -f $backup_file
 }
 
-function process_users() {
-    local service=$1
-    local user_prefix=$2
-    local config_file=$3
-    local db_file=$4
+function process_user_protocol() {
+    protocol=$1
+    sudo rm /var/log/xray/access.log
+    sudo rm -f /var/log/xray/access.log
+    systemctl restart xray
+    sleep 30
+    rm -f /root/limit/*
+    sleep 1
+    data=$(grep -E "^#${protocol} " /etc/xray/config.json | cut -d ' ' -f 2)
+    for user in $data
+    do
+        if [[ -f /etc/kyt/limit/${protocol}/ip/$user ]]; then
+            nilai=$(cat /etc/kyt/limit/${protocol}/ip/$user)
+            limitxray=$((nilai + 1))
 
+            if [ ! -d "/root/limit/$user" ]; then
+                mkdir -p /root/limit/$user
+            fi
+
+            cat /var/log/xray/access.log | grep $user | awk '{print $3}' | sed 's/tcp://g' | sed 's/:0//g' | sort | uniq > /root/limit/$user
+            jumlahdata=$(wc -l < /root/limit/$user)
+            if [ $jumlahdata -gt $limitxray ]; then
+                kirimtele=" MULTI LOGIN DETECTED $user login $jumlahdata IP"
+                echo "#${protocol} $kirimtele" >> /root/limit/rulesxray.txt
+                BOT_TOKEN=$(sed -n '1p' /root/kyt/var.txt)
+                ADMIN=$(sed -n '2p' /root/kyt/var.txt)
+                curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" -d "chat_id=${ADMIN}" -d "text=${kirimtele}"
+                exp=$(grep -E "^#${protocol} $user " /etc/xray/config.json | cut -d ' ' -f 3)
+                backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/${protocol}/.${protocol}.db"
+                systemctl restart xray
+                send_log "Terkunci Selama 15 Menit"
+                sleep 900
+                restore_user "$user" "/etc/xray/config.json" "/etc/${protocol}/.${protocol}.db"
+                systemctl restart xray
+                send_log "Terunlock"
+                rm -f /root/limit/*
+                rm -f /root/limit/$user
+            else
+                echo "aman"
+                rm -f /root/limit/*
+            fi
+        else
+            echo "Limit IP file for user $user not found."
+        fi
+    done
+}
+
+function vmip() {
     if is_locked; then
         echo "Another process is already running. Exiting..."
         exit 1
     fi
     lock
+    process_user_protocol "vmess"
+    unlock
+}
 
-    echo -n > /var/log/xray/access.log
-    sleep 10
-    local data=( $(ls /etc/kyt/limit/$service/ip) )
-    for user in "${data[@]}"
-    do
-        local iplimit=$(cat /etc/kyt/limit/$service/ip/$user)
-        local ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
-        local cekcek=$(echo -e "$ehh" | wc -l)
-        if [[ $cekcek -gt $iplimit ]]; then
-            local exp=$(grep -w "^$user_prefix $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
-            backup_and_remove_user "$exp" "$user" "$config_file" "$db_file"
-            systemctl restart xray >> /dev/null 2>&1
-            rm -rf /etc/kyt/limit/$service/ip/$user
-            send_log "$user" "$iplimit" "$cekcek" "$ehh" "Terkunci Selama 15 Menit"
-            sleep 900
-            restore_user "$user" "$config_file" "$db_file"
-            systemctl restart xray >> /dev/null 2>&1
-            send_log "$user" "$iplimit" "$cekcek" "$ehh" "Terunlock"
-        else
-            echo ""
-        fi
-        sleep 0.1
-    done
+function vlip() {
+    if is_locked; then
+        echo "Another process is already running. Exiting..."
+        exit 1
+    fi
+    lock
+    process_user_protocol "vless"
+    unlock
+}
 
+function trip() {
+    if is_locked; then
+        echo "Another process is already running. Exiting..."
+        exit 1
+    fi
+    lock
+    process_user_protocol "trojan"
     unlock
 }
 
 if [[ ${1} == "vmip" ]]; then
-    process_users "vmess" "###" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
+    vmip
 elif [[ ${1} == "vlip" ]]; then
-    process_users "vless" "#&" "/etc/xray/config.json" "/etc/vless/.vless.db"
+    vlip
 elif [[ ${1} == "trip" ]]; then
-    process_users "trojan" "#!" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
+    trip
 fi
