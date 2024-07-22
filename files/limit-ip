@@ -50,11 +50,12 @@ function backup_and_remove_user() {
     user=$2
     config_file=$3
     db_file=$4
-    backup_file="/tmp/${user}_backup"
+    backup_dir="/tmp/${user}_backup"
 
     # Backup the user configuration
-    grep -w "^### $user $exp" $config_file > $backup_file
-    grep -w "^### $user $exp" $db_file >> $backup_file
+    mkdir -p $backup_dir
+    cp $config_file $backup_dir/config.json
+    cp $db_file $backup_dir/db.json
 
     # Remove the user configuration
     sed -i "/^### $user $exp/,/^},{/d" $config_file
@@ -65,22 +66,14 @@ function restore_user() {
     user=$1
     config_file=$2
     db_file=$3
-    backup_file="/tmp/${user}_backup"
+    backup_dir="/tmp/${user}_backup"
 
-    # Restore the user configuration from the backup file
-    while IFS= read -r line; do
-        if [[ "$line" =~ ^###\ $user ]]; then
-            echo "$line" >> $config_file
-            echo "$line" >> $db_file
-        else
-            # Handle restoring the complete block if necessary
-            echo "$line" >> $config_file
-            echo "$line" >> $db_file
-        fi
-    done < $backup_file
+    # Restore the user configuration from the backup directory
+    cp $backup_dir/config.json $config_file
+    cp $backup_dir/db.json $db_file
 
-    # Remove the backup file
-    rm -f $backup_file
+    # Remove the backup directory
+    rm -rf $backup_dir
 }
 
 function check_user() {
