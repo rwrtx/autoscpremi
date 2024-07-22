@@ -3,6 +3,7 @@
 LOCK_FILE="/tmp/multi_login_lock"
 CHECK_INTERVAL=300  # Waktu cek ulang dalam detik (5 menit)
 WAIT_TIME=900       # Waktu kunci dalam detik (15 menit)
+TEMP_IP_FILE="/tmp/temp_ips.txt"
 
 function is_locked() {
     [[ -e "$LOCK_FILE" ]]
@@ -44,51 +45,15 @@ $(echo -e "$ehh" | sed 's/^/<code>/;s/$/<\/code>/')
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
 
-function backup_and_remove_user() {
-    exp=$1
-    user=$2
-    config_file=$3
-    db_file=$4
-    backup_dir="/tmp/${user}_backup"
-    mkdir -p $backup_dir
-
-    # Backup the user configuration from config_file and db_file
-    grep -w "^### $user $exp" $config_file > $backup_dir/config_backup
-    grep -w "^### $user $exp" $db_file > $backup_dir/db_backup
-
-    # Remove the user configuration from config_file and db_file
-    sed -i "/^### $user $exp/,/^},{/d" $config_file
-    sed -i "/^### $user $exp/d" $db_file
-}
-
-function restore_user() {
-    user=$1
-    config_file=$2
-    db_file=$3
-    backup_dir="/tmp/${user}_backup"
-
-    # Restore the user configuration from config_backup and db_backup
-    cat $backup_dir/config_backup >> $config_file
-    cat $backup_dir/db_backup >> $db_file
-
-    # Remove the backup directory
-    rm -rf $backup_dir
-}
-
-function remove_user_ips() {
-    user=$1
-    log_file=$2
-
-    # Remove user's IPs from the access log
-    sed -i "/$user/d" $log_file
-}
-
-function check_user() {
+function process_ip_violations() {
     protocol=$1
     config_file=$2
     db_file=$3
     ip_limit_dir="/etc/kyt/limit/$protocol/ip"
     log_file="/var/log/xray/access.log"
+    temp_ip_file="/tmp/${protocol}_violations.txt"
+
+    echo -n > $temp_ip_file
 
     data=( $(ls $ip_limit_dir) )
     for user in "${data[@]}"; do
@@ -97,15 +62,29 @@ function check_user() {
         cekcek=$(echo -e "$ehh" | wc -l)
         if [[ $cekcek -gt $iplimit ]]; then
             exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
-            backup_and_remove_user "$exp" "$user" "$config_file" "$db_file"
-            systemctl restart xray >> /dev/null 2>&1
-            rm -rf "$ip_limit_dir/$user"
+            # Record IPs and user's state
+            echo "$user" >> $temp_ip_file
+            echo -e "$ehh" >> $temp_ip_file
+
             send_log "Terkunci Selama 15 Menit"
             sleep $WAIT_TIME
-            restore_user "$user" "$config_file" "$db_file"
-            remove_user_ips "$user" "$log_file"
+            systemctl restart xray >> /dev/null 2>&1
+
+            # Restore IPs if user is still in violation
+            updated_ehh=$(grep "$user" $log_file | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+            for ip in $(cat $temp_ip_file | grep -v "^$user$"); do
+                if [[ ! $updated_ehh =~ $ip ]]; then
+                    echo $ip >> $temp_ip_file
+                fi
+            done
+
+            # Remove user limit file to allow login again
+            rm -rf "$ip_limit_dir/$user"
             systemctl restart xray >> /dev/null 2>&1
             send_log "Terunlock"
+
+            # Clear temp file
+            echo -n > $temp_ip_file
         fi
         sleep 0.1
     done
@@ -120,7 +99,7 @@ function vmip() {
 
     echo -n > /var/log/xray/access.log
     sleep 10
-    check_user "vmess" "/etc/xray/config.json" "/etc/vmess/vmess.db"
+    process_ip_violations "vmess" "/etc/xray/config.json" "/etc/vmess/vmess.db"
 
     unlock
 }
@@ -134,7 +113,7 @@ function vlip() {
 
     echo -n > /var/log/xray/access.log
     sleep 10
-    check_user "vless" "/etc/xray/config.json" "/etc/vless/vless.db"
+    process_ip_violations "vless" "/etc/xray/config.json" "/etc/vless/vless.db"
 
     unlock
 }
@@ -148,7 +127,7 @@ function trip() {
 
     echo -n > /var/log/xray/access.log
     sleep 10
-    check_user "trojan" "/etc/xray/config.json" "/etc/trojan/trojan.db"
+    process_ip_violations "trojan" "/etc/xray/config.json" "/etc/trojan/trojan.db"
 
     unlock
 }
