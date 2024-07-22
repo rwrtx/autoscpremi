@@ -25,22 +25,22 @@ function send_log() {
     domain=$(cat /etc/xray/domain)
     status="$1"
     TEXT="
-<code>────────────────────</code>
+<code>───────────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
-<code>────────────────────</code>
+<code>───────────────────────────</code>
 <code>ISP    : ${isp}</code>
 <code>Domain : ${domain}</code>
-<code>────────────────────</code>
+<code>───────────────────────────</code>
 <code>Username        : ${user}</code>
-<code>UUID            : ${uuid}</code>
+<code>Protokol        : ${protocol}</code>
 <code>Limit IP        : ${iplimit}</code>
 <code>Login IP Count  : ${cekcek}</code>
-<code>────────────────────</code>
+<code>───────────────────────────</code>
 <code>Detail IP Login : </code>
 $(echo -e "$ehh" | sed 's/^/<code>/;s/$/<\/code>/')
-<code>────────────────────</code>
+<code>───────────────────────────</code>
 <code> ${status}</code>
-<code>────────────────────</code>
+<code>───────────────────────────</code>
 "
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
