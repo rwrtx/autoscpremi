@@ -2,7 +2,7 @@
 
 LOCK_FILE="/tmp/multi_login_lock"
 CHECK_INTERVAL=300  # Waktu cek ulang dalam detik (5 menit)
-WAIT_TIME=900        # Waktu kunci dalam detik (15 menit)
+WAIT_TIME=300       # Waktu kunci dalam detik (5 menit untuk uji coba)
 
 function is_locked() {
     [[ -e "$LOCK_FILE" ]]
@@ -44,36 +44,36 @@ $(echo -e "$ehh" | sed 's/^/<code>/;s/$/<\/code>/')
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
 
-function change_user_uuid() {
-    user=$1
-    config_file=$2
-    db_file=$3
+function backup_and_remove_user() {
+    exp=$1
+    user=$2
+    config_file=$3
+    db_file=$4
+    backup_file="/tmp/${user}_backup"
 
-    # Ambil UUID asli pengguna dari file konfigurasi
-    original_uuid=$(grep -w "^### $user" "$db_file" | awk '{print $4}')
-    # Hasilkan UUID baru
-    new_uuid=$(uuidgen)
+    # Backup the user configuration
+    grep -w "^### $user $exp" $config_file > $backup_file
+    grep -w "^### $user $exp" $db_file >> $backup_file
 
-    # Ganti UUID asli dengan UUID baru di file konfigurasi
-    sed -i "s/$original_uuid/$new_uuid/" $config_file
-    # Ganti UUID asli dengan UUID baru di file database
-    sed -i "s/$original_uuid/$new_uuid/" $db_file
+    # Remove the user configuration
+    sed -i "/^### $user $exp/,/^},{/d" $config_file
+    sed -i "/^### $user $exp/d" $db_file
 }
 
-function restore_user_uuid() {
+function restore_user() {
     user=$1
     config_file=$2
     db_file=$3
+    backup_file="/tmp/${user}_backup"
 
-    # Ambil UUID baru yang digunakan selama penguncian dari file database
-    new_uuid=$(grep -w "^### $user" "$db_file" | awk '{print $4}')
-    # Ambil UUID asli pengguna dari file backup
-    original_uuid=$(grep -w "^### $user" "$db_file" | awk '{print $4}')
+    # Restore the user configuration
+    while read -r line; do
+        echo "$line" >> $config_file
+        echo "$line" >> $db_file
+    done < $backup_file
 
-    # Kembalikan UUID asli di file konfigurasi
-    sed -i "s/$new_uuid/$original_uuid/" $config_file
-    # Kembalikan UUID asli di file database
-    sed -i "s/$new_uuid/$original_uuid/" $db_file
+    # Remove the backup file
+    rm -f $backup_file
 }
 
 function check_user() {
@@ -88,13 +88,15 @@ function check_user() {
         ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
         cekcek=$(echo -e "$ehh" | wc -l)
         if [[ $cekcek -gt $iplimit ]]; then
-            change_user_uuid "$user" "$config_file" "$db_file"
+            exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
+            backup_and_remove_user "$exp" "$user" "$config_file" "$db_file"
             systemctl restart xray >> /dev/null 2>&1
-            send_log "Locked Selama 15 Menit"
+            rm -rf "$ip_limit_dir/$user"
+            send_log "Terkunci Selama 5 Menit"
             sleep $WAIT_TIME
-            restore_user_uuid "$user" "$config_file" "$db_file"
+            restore_user "$user" "$config_file" "$db_file"
             systemctl restart xray >> /dev/null 2>&1
-            send_log "Unlock"
+            send_log "Terunlock"
         fi
         sleep 0.1
     done
