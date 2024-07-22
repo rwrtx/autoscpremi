@@ -2,7 +2,7 @@
 
 LOCK_FILE="/tmp/multi_login_lock"
 CHECK_INTERVAL=300  # Waktu cek ulang dalam detik (5 menit)
-WAIT_TIME=60        # Waktu kunci dalam detik (1 menit untuk uji coba)
+WAIT_TIME=900        # Waktu kunci dalam detik (15 menit)
 
 function is_locked() {
     [[ -e "$LOCK_FILE" ]]
@@ -90,11 +90,11 @@ function check_user() {
         if [[ $cekcek -gt $iplimit ]]; then
             change_user_uuid "$user" "$config_file" "$db_file"
             systemctl restart xray >> /dev/null 2>&1
-            send_log "Terkunci Selama 1 Menit"
+            send_log "Locked Selama 15 Menit"
             sleep $WAIT_TIME
             restore_user_uuid "$user" "$config_file" "$db_file"
             systemctl restart xray >> /dev/null 2>&1
-            send_log "Terunlock"
+            send_log "Unlock"
         fi
         sleep 0.1
     done
