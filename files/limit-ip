@@ -84,7 +84,7 @@ function vmip() {
     # LIMITVMESSIP
     echo -n > /var/log/xray/access.log
     sleep 10
-    data=( $(ls /etc/kyt/limit/vmess/ip 2>/dev/null) )
+    data=( $(ls /etc/kyt/limit/vmess/ip) )
     for user in "${data[@]}"
     do
         iplimit=$(cat /etc/kyt/limit/vmess/ip/$user)
@@ -94,9 +94,11 @@ function vmip() {
             exp=$(grep -w "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
             backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
             systemctl restart xray >> /dev/null 2>&1
+            jum2=$(cat /tmp/ipvmess.txt | wc -l)
             rm -rf /etc/kyt/limit/vmess/ip/$user
             send_log "Terkunci Selama 15 Menit"
             sleep 900
+            rm -rf /root/limit/${user}  # Menghapus file IP saat unlock
             restore_user "$user" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
             systemctl restart xray >> /dev/null 2>&1
             send_log "Terunlock"
@@ -119,7 +121,7 @@ function vlip() {
     # LIMITVLESSIP
     echo -n > /var/log/xray/access.log
     sleep 10
-    data=( $(ls /etc/kyt/limit/vless/ip 2>/dev/null) )
+    data=( $(ls /etc/kyt/limit/vless/ip) )
     for user in "${data[@]}"
     do
         iplimit=$(cat /etc/kyt/limit/vless/ip/$user)
@@ -129,9 +131,11 @@ function vlip() {
             exp=$(grep -w "^#& $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
             backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/vless/.vless.db"
             systemctl restart xray >> /dev/null 2>&1
+            jum2=$(cat /tmp/ipvless.txt | wc -l)
             rm -rf /etc/kyt/limit/vless/ip/$user
             send_log "Terkunci Selama 15 Menit"
             sleep 900
+            rm -rf /root/limit/${user}  # Menghapus file IP saat unlock
             restore_user "$user" "/etc/xray/config.json" "/etc/vless/.vless.db"
             systemctl restart xray >> /dev/null 2>&1
             send_log "Terunlock"
@@ -154,7 +158,7 @@ function trip() {
     # LIMITIPTROJAN
     echo -n > /var/log/xray/access.log
     sleep 10
-    data=( $(ls /etc/kyt/limit/trojan/ip 2>/dev/null) )
+    data=( $(ls /etc/kyt/limit/trojan/ip) )
     for user in "${data[@]}"
     do
         iplimit=$(cat /etc/kyt/limit/trojan/ip/$user)
@@ -164,9 +168,11 @@ function trip() {
             exp=$(grep -w "^#! $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
             backup_and_remove_user "$exp" "$user" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
             systemctl restart xray >> /dev/null 2>&1
+            jum2=$(cat /tmp/iptrojan.txt | wc -l)
             rm -rf /etc/kyt/limit/trojan/ip/$user
             send_log "Terkunci Selama 15 Menit"
             sleep 900
+            rm -rf /root/limit/${user}  # Menghapus file IP saat unlock
             restore_user "$user" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
             systemctl restart xray >> /dev/null 2>&1
             send_log "Terunlock"
