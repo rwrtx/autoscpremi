@@ -76,16 +76,25 @@ function restore_user() {
     rm -f $backup_file
 }
 
+function remove_user_ips() {
+    user=$1
+    log_file=$2
+
+    # Remove user's IPs from the access log
+    sed -i "/$user/d" $log_file
+}
+
 function check_user() {
     protocol=$1
     config_file=$2
     db_file=$3
     ip_limit_dir="/etc/kyt/limit/$protocol/ip"
+    log_file="/var/log/xray/access.log"
 
     data=( $(ls $ip_limit_dir) )
     for user in "${data[@]}"; do
         iplimit=$(cat "$ip_limit_dir/$user")
-        ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        ehh=$(grep "$user" $log_file | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
         cekcek=$(echo -e "$ehh" | wc -l)
         if [[ $cekcek -gt $iplimit ]]; then
             exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
@@ -95,6 +104,7 @@ function check_user() {
             send_log "Terkunci Selama 15 Menit"
             sleep $WAIT_TIME
             restore_user "$user" "$config_file" "$db_file"
+            remove_user_ips "$user" "$log_file"
             systemctl restart xray >> /dev/null 2>&1
             send_log "Terunlock"
         fi
