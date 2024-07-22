@@ -50,12 +50,14 @@ function backup_and_remove_user() {
     user=$2
     config_file=$3
     db_file=$4
+    ip_limit_file=$5
     backup_dir="/tmp/${user}_backup"
 
     # Backup the user configuration
     mkdir -p $backup_dir
     cp $config_file $backup_dir/config.json
     cp $db_file $backup_dir/db.json
+    echo $iplimit > $backup_dir/iplimit
 
     # Remove the user configuration
     sed -i "/^### $user $exp/,/^},{/d" $config_file
@@ -66,11 +68,13 @@ function restore_user() {
     user=$1
     config_file=$2
     db_file=$3
+    ip_limit_dir=$4
     backup_dir="/tmp/${user}_backup"
 
     # Restore the user configuration from the backup directory
     cp $backup_dir/config.json $config_file
     cp $backup_dir/db.json $db_file
+    cp $backup_dir/iplimit $ip_limit_dir/$user
 
     # Remove the backup directory
     rm -rf $backup_dir
@@ -90,12 +94,12 @@ function check_user() {
         if [[ $cekcek -gt $iplimit ]]; then
             exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
             uuid=$(grep -A 1 "^### $user $exp" $config_file | grep 'id' | cut -d '"' -f 4)
-            backup_and_remove_user "$exp" "$user" "$config_file" "$db_file"
+            backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
             systemctl restart xray >> /dev/null 2>&1
             rm -rf "$ip_limit_dir/$user"
             send_log "Terkunci Selama 5 Menit"
             sleep $WAIT_TIME
-            restore_user "$user" "$config_file" "$db_file"
+            restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir"
             systemctl restart xray >> /dev/null 2>&1
             send_log "Terunlock"
         fi
