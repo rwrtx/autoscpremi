@@ -2,7 +2,7 @@
 
 LOCK_FILE="/tmp/multi_login_lock"
 CHECK_INTERVAL=300  # Waktu cek ulang dalam detik (5 menit)
-WAIT_TIME=900       # Waktu kunci dalam detik (15 menit)
+WAIT_TIME=360       # Waktu kunci dalam detik (15 menit)
 TEMP_IP_FILE="/tmp/temp_ips.txt"
 
 function is_locked() {
