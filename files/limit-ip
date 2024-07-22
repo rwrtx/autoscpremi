@@ -1,102 +1,150 @@
 #!/bin/bash
 
-# Direktori konfigurasi dan backup
-CONFIG_DIR="/etc/xray"
-VMESS_DB_FILE="/etc/vmess/.vmess.db"
-TROJAN_DB_FILE="/etc/trojan/.trojan.db"
-VLESS_DB_FILE="/etc/vless/.vless.db"
-BACKUP_DIR="/etc/kyt/backup"
+LOCK_FILE="/tmp/multi_login_lock"
+CHECK_INTERVAL=300  # Waktu cek ulang dalam detik (5 menit)
+WAIT_TIME=60        # Waktu kunci dalam detik (1 menit untuk uji coba)
 
-# Detail Telegram
-CHATID="5423129090"
-KEY="6782755839:AAEtaEt8JKHdzXvIDdzNAn1kYuTQxOdgyH4"
-URL="https://api.telegram.org/bot$KEY/sendMessage"
-TIME="10"
-
-# Fungsi backup data
-backup_data() {
-    echo "Membackup data konfigurasi..."
-    mkdir -p "$BACKUP_DIR"
-    cp "$CONFIG_DIR/config.json" "$BACKUP_DIR/config.json.bak"
-    cp "$VMESS_DB_FILE" "$BACKUP_DIR/vmess.db.bak"
-    cp "$TROJAN_DB_FILE" "$BACKUP_DIR/trojan.db.bak"
-    cp "$VLESS_DB_FILE" "$BACKUP_DIR/vless.db.bak"
-    echo "Backup selesai."
+function is_locked() {
+    [[ -e "$LOCK_FILE" ]]
 }
 
-# Fungsi restore data
-restore_data() {
-    echo "Mengembalikan data konfigurasi..."
-    cp "$BACKUP_DIR/config.json.bak" "$CONFIG_DIR/config.json"
-    cp "$BACKUP_DIR/vmess.db.bak" "$VMESS_DB_FILE"
-    cp "$BACKUP_DIR/trojan.db.bak" "$TROJAN_DB_FILE"
-    cp "$BACKUP_DIR/vless.db.bak" "$VLESS_DB_FILE"
-    echo "Restore selesai."
+function lock() {
+    touch "$LOCK_FILE"
 }
 
-# Fungsi menghapus IP login
-remove_ip_log() {
-    local user=$1
-    echo "Menghapus IP login untuk user $user..."
-    rm -f "/etc/kyt/limit/vmess/ip/$user"
+function unlock() {
+    rm -f "$LOCK_FILE"
 }
 
-# Fungsi mengunci akun
-lock_account() {
-    local user=$1
-    echo "Mengunci akun $user selama 1 menit untuk uji coba..."
-    backup_data
-    remove_ip_log "$user"
-    sleep 1m
-    restore_data
-    echo "Akun $user telah dibuka kembali."
+function send_log() {
+    CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
+    KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
+    TIME="10"
+    URL="https://api.telegram.org/bot$KEY/sendMessage"
+    isp=$(cat /etc/xray/isp)
+    domain=$(cat /etc/xray/domain)
+    status="$1"
+    TEXT="
+<code>────────────────────</code>
+<b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
+<code>────────────────────</code>
+<code>ISP    : ${isp}</code>
+<code>Domain : ${domain}</code>
+<code>────────────────────</code>
+<code>Username        : ${user}</code>
+<code>Limit IP        : ${iplimit}</code>
+<code>Login IP Count  : ${cekcek}</code>
+<code>────────────────────</code>
+<code>Detail IP Login : </code>
+$(echo -e "$ehh" | sed 's/^/<code>/;s/$/<\/code>/')
+<code>────────────────────</code>
+<code> ${status}</code>
+<code>────────────────────</code>
+"
+    curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
 
-# Fungsi mengirim notifikasi ke Telegram
-send_telegram_notification() {
-    local user=$1
-    local ip_count=$2
-    local message="<code>User: $user</code>
-<code>Batas IP: $limit</code>
-<code>Jumlah IP: $ip_count</code>
-<code>Status: Dikunci selama 1 menit</code>"
-    
-    curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$message&parse_mode=html" $URL >/dev/null
+function change_user_uuid() {
+    user=$1
+    config_file=$2
+    db_file=$3
+
+    # Ambil UUID asli pengguna dari file database
+    original_uuid=$(grep -w "^### $user" "$db_file" | awk '{print $4}')
+    # Hasilkan UUID baru
+    new_uuid=$(uuidgen)
+
+    # Ganti UUID asli dengan UUID baru di file konfigurasi
+    sed -i "s/$original_uuid/$new_uuid/" $config_file
+    # Ganti UUID asli dengan UUID baru di file database
+    sed -i "s/$original_uuid/$new_uuid/" $db_file
 }
 
-# Fungsi utama untuk memantau dan mengunci akun jika melebihi batas IP
-monitor_and_lock() {
-    local limit=3
-    local user_list=$(grep -oP '(?<=### ).*?(?= )' $VMESS_DB_FILE)
+function restore_user_uuid() {
+    user=$1
+    config_file=$2
+    db_file=$3
 
-    for user in $user_list; do
-        local ip_count=$(grep -w $user /var/log/xray/access.log | awk '{print $3}' | sort | uniq | wc -l)
-        if [[ $ip_count -gt $limit ]]; then
-            lock_account $user
-            send_telegram_notification $user $ip_count
+    # Ambil UUID baru yang digunakan selama penguncian dari file konfigurasi
+    new_uuid=$(grep -w "^### $user" "$config_file" | awk '{print $4}')
+    # Ambil UUID asli pengguna dari file database
+    original_uuid=$(grep -w "^### $user" "$db_file" | awk '{print $4}')
+
+    # Kembalikan UUID asli di file konfigurasi
+    sed -i "s/$new_uuid/$original_uuid/" $config_file
+    # Kembalikan UUID asli di file database
+    sed -i "s/$new_uuid/$original_uuid/" $db_file
+}
+
+function check_user() {
+    protocol=$1
+    config_file=$2
+    db_file=$3
+    ip_limit_dir="/etc/kyt/limit/$protocol/ip"
+
+    data=( $(ls $ip_limit_dir) )
+    for user in "${data[@]}"; do
+        iplimit=$(cat "$ip_limit_dir/$user")
+        ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        cekcek=$(echo -e "$ehh" | wc -l)
+        if [[ $cekcek -gt $iplimit ]]; then
+            change_user_uuid "$user" "$config_file" "$db_file"
+            systemctl restart xray >> /dev/null 2>&1
+            send_log "Terkunci Selama 1 Menit"
+            sleep $WAIT_TIME
+            restore_user_uuid "$user" "$config_file" "$db_file"
+            systemctl restart xray >> /dev/null 2>&1
+            send_log "Terunlock"
         fi
-    done
-
-    local trojan_user_list=$(grep -oP '(?<=### ).*?(?= )' $TROJAN_DB_FILE)
-
-    for user in $trojan_user_list; do
-        local ip_count=$(grep -w $user /var/log/xray/access.log | awk '{print $3}' | sort | uniq | wc -l)
-        if [[ $ip_count -gt $limit ]]; then
-            lock_account $user
-            send_telegram_notification $user $ip_count
-        fi
-    done
-
-    local vless_user_list=$(grep -oP '(?<=### ).*?(?= )' $VLESS_DB_FILE)
-
-    for user in $vless_user_list; do
-        local ip_count=$(grep -w $user /var/log/xray/access.log | awk '{print $3}' | sort | uniq | wc -l)
-        if [[ $ip_count -gt $limit ]]; then
-            lock_account $user
-            send_telegram_notification $user $ip_count
-        fi
+        sleep 0.1
     done
 }
 
-# Contoh penggunaan
-monitor_and_lock
+function vmip() {
+    if is_locked; then
+        echo "Another process is already running. Exiting..."
+        exit 1
+    fi
+    lock
+
+    echo -n > /var/log/xray/access.log
+    sleep 10
+    check_user "vmess" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
+
+    unlock
+}
+
+function vlip() {
+    if is_locked; then
+        echo "Another process is already running. Exiting..."
+        exit 1
+    fi
+    lock
+
+    echo -n > /var/log/xray/access.log
+    sleep 10
+    check_user "vless" "/etc/xray/config.json" "/etc/vless/.vless.db"
+
+    unlock
+}
+
+function trip() {
+    if is_locked; then
+        echo "Another process is already running. Exiting..."
+        exit 1
+    fi
+    lock
+
+    echo -n > /var/log/xray/access.log
+    sleep 10
+    check_user "trojan" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
+
+    unlock
+}
+
+while true; do
+    vmip
+    vlip
+    trip
+    sleep $CHECK_INTERVAL
+done
