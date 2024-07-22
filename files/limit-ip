@@ -1,8 +1,8 @@
 #!/bin/bash
 
 LOCK_FILE="/tmp/multi_login_lock"
-CHECK_INTERVAL=300  # Waktu cek ulang dalam detik (5 menit)
-WAIT_TIME=300       # Waktu kunci dalam detik (5 menit untuk uji coba)
+CHECK_INTERVAL=300  # descript
+WAIT_TIME=900       # Script By.R32WRTxTUNNELING
 
 function is_locked() {
     [[ -e "$LOCK_FILE" ]]
@@ -26,7 +26,7 @@ function send_log() {
     status="$1"
     TEXT="
 <code>───────────────────────────</code>
-<b>⚠️ NOTIFICATIONS MULTI LOGIN XRAY ⚠️</b>
+<b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
 <code>───────────────────────────</code>
 <code>ISP    : ${isp}</code>
 <code>Domain : ${domain}</code>
@@ -98,11 +98,11 @@ function check_user() {
             backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
             systemctl restart xray >> /dev/null 2>&1
             rm -rf "$ip_limit_dir/$user"
-            send_log "Terkunci Selama 5 Menit"
+            send_log "🔴 🔒LOCKED🔒 🔴"
             sleep $WAIT_TIME
             restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir"
             systemctl restart xray >> /dev/null 2>&1
-            send_log "Terunlock"
+            send_log "🟢 🔓UNLOCK🔓 🟢"
         fi
         sleep 0.1
     done
