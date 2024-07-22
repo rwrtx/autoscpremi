@@ -74,7 +74,8 @@ function restore_user() {
     # Restore the user configuration from the backup directory
     cp $backup_dir/config.json $config_file
     cp $backup_dir/db.json $db_file
-    cp $backup_dir/iplimit $ip_limit_dir/$user
+    iplimit=$(cat $backup_dir/iplimit)
+    echo $iplimit > $ip_limit_dir/$user
 
     # Remove the backup directory
     rm -rf $backup_dir
