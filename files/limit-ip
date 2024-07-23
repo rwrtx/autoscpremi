@@ -38,20 +38,20 @@ function send_log() {
 <code>────────────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
 <code>────────────────────────────</code>
-<code>❖ » User     : ${user}</code>
-<code>❖ » ISP      : ${isp}</code>
-<code>❖ » Domain   : ${domain}</code>
-<code>❖ » Protocol : ${protocol}</code>
-<code>❖ » Time     : ${TIMEZONE}</code>
-<code>❖ » Date     : ${DATEVPS}</code>
+<code>❖ » USER   : ${user}</code>
+<code>❖ » ISP    : ${isp}</code>
+<code>❖ » DOMAIN : ${domain}</code>
+<code>❖ » PATH   : ${protocol}</code>
+<code>❖ » TIME   : ${TIMEZONE}</code>
+<code>❖ » DATE   : ${DATEVPS}</code>
 <code>────────────────────────────</code>
-<code>❖ » Limit IP : ${iplimit}</code>
-<code>❖ » Login IP : ${cekcek}</code>
+<code>❖ » LIMIT  : ${iplimit} IP</code>
+<code>❖ » LOGIN  : ${cekcek} IP</code>
 <code>────────────────────────────</code>
-<code>❖ » Detail IP Login</code>
+<code>❖ » DETAIL IP LOGIN</code>
 echo -e "$(echo -e "$ehh" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')"
 <code>────────────────────────────</code>
-<code>❖ »  ${status}</code>
+<code>❖ » ${status}</code>
 <code>───────────────────────────</code>
 "
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
