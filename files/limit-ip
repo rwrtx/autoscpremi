@@ -49,7 +49,7 @@ function send_log() {
 <code>❖ » LOGIN  : ${cekcek} IP</code>
 <code>────────────────────────────</code>
 <code>❖ » DETAIL IP LOGIN</code>
-echo -e "$(echo -e "$ehh" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')"
+$(echo -e "$ehh" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')
 <code>────────────────────────────</code>
 <code>❖ » ${status}</code>
 <code>───────────────────────────</code>
