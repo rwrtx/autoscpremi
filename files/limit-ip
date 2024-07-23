@@ -35,24 +35,24 @@ function send_log() {
     #TIMEZONE=$(printf '%(%H:%M:%S)T')
     status="$1"
     TEXT="
-<code>────────────────────────────</code>
+<code>─────────────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
-<code>────────────────────────────</code>
+<code>─────────────────────────────</code>
 <code>❖ » USER   : ${user}</code>
 <code>❖ » ISP    : ${isp}</code>
 <code>❖ » DOMAIN : ${domain}</code>
 <code>❖ » PATH   : ${protocol}</code>
 <code>❖ » TIME   : ${TIMEZONE}</code>
 <code>❖ » DATE   : ${DATEVPS}</code>
-<code>────────────────────────────</code>
+<code>─────────────────────────────</code>
 <code>❖ » LIMIT  : ${iplimit} IP</code>
 <code>❖ » LOGIN  : ${cekcek} IP</code>
-<code>────────────────────────────</code>
+<code>─────────────────────────────</code>
 <code>❖ » DETAIL IP LOGIN</code>
 $(echo -e "$ehh" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')
-<code>────────────────────────────</code>
-<code>❖ » ${status}</code>
-<code>───────────────────────────</code>
+<code>─────────────────────────────</code>
+<code>❖ » AKUN ${status}</code>
+<code>─────────────────────────────</code>
 "
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
@@ -102,7 +102,7 @@ function check_user() {
     data=( $(ls $ip_limit_dir) )
     for user in "${data[@]}"; do
         iplimit=$(cat "$ip_limit_dir/$user")
-        ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        ehh=$(grep "$user" /var/log/xray/access.log | grep -v "127.0.0.1" | awk '{print $2 " » " $3}' | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
         cekcek=$(echo -e "$ehh" | wc -l)
         if [[ $cekcek -gt $iplimit ]]; then
             exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
