@@ -35,14 +35,15 @@ fun_bar() {
     echo -e "\033[0;33m]\033[1;37m -\033[1;32m OK !\033[1;37m"
     tput cnorm
 }
+
 res1() {
     wget https://raw.githubusercontent.com/rwrtx/autoscpremi/main/menu/menu.zip
     wget -q -O /usr/bin/enc "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/enc/encrypt" ; chmod +x /usr/bin/enc
     unzip menu.zip
     chmod +x menu/*
- 	enc menu/*
-  	enc up.sh
-   	enc repoid1-setup.sh
+    enc menu/*
+    enc up.sh
+    enc repoid1-setup.sh
     mv menu/* /usr/local/sbin
     mv up.sh /usr/local/sbin
     mv repoid1-setup.sh /usr/local/sbin
@@ -51,7 +52,33 @@ res1() {
     rm -rf update.sh
     rm -rf up.sh
     rm -rf upd.sh
+    
+    # Tambahan bagian untuk mengunduh dan mengatur layanan
+    REPO="https://raw.githubusercontent.com/rwrtx/autoscpremi/main/config/fv-tunnel/"
+
+    # Download and set permissions for service files
+    wget -q -O /etc/systemd/system/limitvmess.service "${REPO}files/limitvmess.service" && chmod +x /etc/systemd/system/limitvmess.service
+    wget -q -O /etc/systemd/system/limitvless.service "${REPO}files/limitvless.service" && chmod +x /etc/systemd/system/limitvless.service
+    wget -q -O /etc/systemd/system/limittrojan.service "${REPO}files/limittrojan.service" && chmod +x /etc/systemd/system/limittrojan.service
+    wget -q -O /etc/systemd/system/limitshadowsocks.service "${REPO}files/limitshadowsocks.service" && chmod +x /etc/systemd/system/limitshadowsocks.service
+    wget -q -O /etc/systemd/system/limit-ip.service "${REPO}files/limit-ip.service" && chmod +x /etc/systemd/system/limit-ip.service
+
+    # Download and set permissions for limit scripts
+    wget -q -O /etc/xray/limit.vmess "${REPO}files/vmess" && chmod +x /etc/xray/limit.vmess
+    wget -q -O /etc/xray/limit.vless "${REPO}files/vless" && chmod +x /etc/xray/limit.vless
+    wget -q -O /etc/xray/limit.trojan "${REPO}files/trojan" && chmod +x /etc/xray/limit.trojan
+    wget -q -O /etc/xray/limit.shadowsocks "${REPO}files/shadowsocks" && chmod +x /etc/xray/limit.shadowsocks
+
+    # Reload systemd, enable and start services
+    systemctl daemon-reload
+    systemctl enable --now limitvmess.service
+    systemctl enable --now limitvless.service
+    systemctl enable --now limittrojan.service
+    systemctl enable --now limitshadowsocks.service
+    systemctl enable --now limit-ip.service
+    systemctl start limit-ip.service
 }
+
 netfilter-persistent
 clear
 clear
