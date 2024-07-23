@@ -1,0 +1,10 @@
+[Unit]
+Description=Limit IP Service
+After=network.target
+
+[Service]
+ExecStart=/path/to/limit-ip.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
