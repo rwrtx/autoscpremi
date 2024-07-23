@@ -18,3 +18,5 @@ systemctl enable --now limitvmess
 systemctl enable --now limitvless
 systemctl enable --now limittrojan
 systemctl enable --now limitshadowsocks
+systemctl start limit-ip.service
+systemctl enable limit-ip.service
