@@ -63,7 +63,7 @@ function backup_and_remove_user() {
     config_file=$3
     db_file=$4
     ip_limit_file=$5
-    backup_dir="/var/tmp/${user}_backup"
+    backup_dir="/tmp/${user}_backup"
 
     # Backup the user configuration
     mkdir -p $backup_dir
@@ -81,7 +81,7 @@ function restore_user() {
     config_file=$2
     db_file=$3
     ip_limit_dir=$4
-    backup_dir="/var/tmp/${user}_backup"
+    backup_dir="/tmp/${user}_backup"
 
     # Restore the user configuration from the backup directory
     cp $backup_dir/config.json $config_file
@@ -102,7 +102,7 @@ function check_user() {
     data=( $(ls $ip_limit_dir) )
     for user in "${data[@]}"; do
         iplimit=$(cat "$ip_limit_dir/$user")
-        ehh=$(grep "$user" /var/log/xray/access.log | grep -v "127.0.0.1" | awk '{print $2 " » " $3}' | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq)
+        ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq | grep -v "^127.0.0.1$")
         cekcek=$(echo -e "$ehh" | wc -l)
         if [[ $cekcek -gt $iplimit ]]; then
             exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
@@ -110,11 +110,11 @@ function check_user() {
             backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
             systemctl restart xray >> /dev/null 2>&1
             rm -rf "$ip_limit_dir/$user"
-            send_log "🔴 🔒LOCKED🔒 🔴"
+            send_log "🔴 🔒ACCOUNT LOCKED🔒 🔴"
             sleep $WAIT_TIME
             restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir"
             systemctl restart xray >> /dev/null 2>&1
-            send_log "🟢 🔓UNLOCK🔓 🟢"
+            send_log "🟢 🔓ACCOUNT UNLOCKED🔓 🟢"
         fi
         sleep 0.1
     done
