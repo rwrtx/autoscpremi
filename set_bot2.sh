@@ -1,19 +1,46 @@
 #!/bin/bash
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# System Request : Debian 9+/Ubuntu 18.04+/20+
+# Develovers     » R32WRT_STORE
+# telegram       » https://t.me/R32WRT_STORE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# R32WRTx TUNNELING
 
-# Nama file yang akan menyimpan chat_id dan token bot kedua
-BOT2_FILE="/etc/bot/.bot2.db"
+clear
+echo ""
+echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e "\e[1;97;101m           » TAMBAH BOT PANEL 2 «           \e[0m"
+echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e "\033[1;36mTutorial Creat Bot and ID Telegram\033[0m"
+echo -e "\033[1;36m[»] Creat Bot and Token Bot : @BotFather\033[0m"
+echo -e "\033[1;36m[»] Info Id Telegram : @MissRose_bot\033[0m"
+echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e ""
+read -e -p "[»] Input your Bot Token   : " bottoken2
+read -e -p "[»] Input Your Id Telegram : " admin2
+echo -e BOT_TOKEN2='"'$bottoken2'"' >> /usr/bin/kyt/var2.txt
+echo -e ADMIN2='"'$admin2'"' >> /usr/bin/kyt/var2.txt
+clear
 
-# Fungsi untuk mengatur chat_id dan token
-function set_bot2_credentials() {
-    read -p "Masukkan chat_id bot kedua: " bot2_chat_id
-    read -p "Masukkan token bot kedua: " bot2_token
+if [[ ${c} != "0" ]]; then
+  echo "${d}" >/etc/bot/${bottoken2}
+fi
+DATADB=$(cat /etc/bot/.bot2.db | grep "^#bot2#" | grep -w "${bottoken2}" | awk '{print $2}')
+if [[ "${DATADB}" != '' ]]; then
+  sed -i "/\b${user}\b/d" /etc/bot/.bot2.db
+fi
+echo "#bot2# ${bottoken2} ${admin2}" >>/etc/bot/.bot2.db
+clear
 
-    echo "#bot2# $bot2_token $bot2_chat_id" > "$BOT2_FILE"
-    echo "Bot kedua berhasil diatur."
-}
-
-# Membuat direktori jika belum ada
-mkdir -p /etc/bot
-
-# Menjalankan fungsi untuk mengatur chat_id dan token bot kedua
-set_bot2_credentials
+echo "Input Data Berhasil Diproses!"
+echo "Your Data Bot Telegram"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Token Bot      : $bottoken2"
+echo "Admin          : $admin2"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Setting Bot 2 Success!"
+sleep 2
+clear
+echo -e ""
+read -n 1 -s -r -p "Press any key to back on menu"
+menu
