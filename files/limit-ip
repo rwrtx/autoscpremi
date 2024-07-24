@@ -1,7 +1,7 @@
 #!/bin/bash
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # System Request : Debian 9+/Ubuntu 18.04+/20+
-# Develovers » 𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆
+# Developers » 𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆
 # telegram   » https://t.me/R32WRT_STORE
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # ꧁༒༺𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆༻༒꧂
@@ -31,8 +31,6 @@ function send_log() {
     domain=$(cat /etc/xray/domain)
     DATEVPS=$(date +'%d/%m/%Y')
     TIMEZONE=$(date +"%H:%M %Z")
-    #DATEVPS=$(date +"%Y-%m-%d")
-    #TIMEZONE=$(printf '%(%H:%M:%S)T')
     status="$1"
     TEXT="
 <code>────────────────────────────</code>
@@ -55,6 +53,42 @@ $(echo -e "$ehh" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')
 <code>───────────────────────────</code>
 "
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+}
+
+function send_log_bot2() {
+    BOT2_FILE="/etc/bot/.bot2.db"
+    if [[ -f "$BOT2_FILE" ]]; then
+        CHATID2=$(grep -E "^#bot2# " "$BOT2_FILE" | cut -d ' ' -f 3)
+        KEY2=$(grep -E "^#bot2# " "$BOT2_FILE" | cut -d ' ' -f 2)
+        TIME="10"
+        URL2="https://api.telegram.org/bot$KEY2/sendMessage"
+        isp=$(cat /etc/xray/isp)
+        domain=$(cat /etc/xray/domain)
+        DATEVPS=$(date +'%d/%m/%Y')
+        TIMEZONE=$(date +"%H:%M %Z")
+        status="$1"
+        TEXT="
+<code>────────────────────────────</code>
+<b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
+<code>────────────────────────────</code>
+<code>❖ » USER   : ${user}</code>
+<code>❖ » ISP    : ${isp}</code>
+<code>❖ » DOMAIN : ${domain}</code>
+<code>❖ » PATH   : ${protocol}</code>
+<code>❖ » TIME   : ${TIMEZONE}</code>
+<code>❖ » DATE   : ${DATEVPS}</code>
+<code>────────────────────────────</code>
+<code>❖ » LIMIT  : ${iplimit} IP</code>
+<code>❖ » LOGIN  : ${cekcek} IP</code>
+<code>────────────────────────────</code>
+<code>❖ » DETAIL IP LOGIN</code>
+$(echo -e "$ehh" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')
+<code>────────────────────────────</code>
+<code>❖ » ${status}</code>
+<code>───────────────────────────</code>
+"
+        curl -s --max-time $TIME -d "chat_id=$CHATID2&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL2 >/dev/null
+    fi
 }
 
 function backup_and_remove_user() {
@@ -111,10 +145,12 @@ function check_user() {
             systemctl restart xray >> /dev/null 2>&1
             rm -rf "$ip_limit_dir/$user"
             send_log "🔴 🔒ACCOUNT LOCKED🔒 🔴"
+            send_log_bot2 "🔴 🔒ACCOUNT LOCKED🔒 🔴"
             sleep $WAIT_TIME
             restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir"
             systemctl restart xray >> /dev/null 2>&1
             send_log "🟢 🔓ACCOUNT UNLOCKED🔓 🟢"
+            send_log_bot2 "🟢 🔓ACCOUNT UNLOCKED🔓 🟢"
         fi
         sleep 0.1
     done
