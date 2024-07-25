@@ -1,8 +1,8 @@
 #!/bin/bash
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # System Request : Debian 9+/Ubuntu 18.04+/20+
-# Develovers     » R32WRT_STORE
-# telegram       » https://t.me/R32WRT_STORE
+# Developers     » R32WRT_STORE
+# Telegram       » https://t.me/R32WRT_STORE
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # R32WRTx TUNNELING
 
@@ -21,6 +21,10 @@ read -e -p "[»] Input Your Id Telegram : " admin2
 echo -e BOT_TOKEN2='"'$bottoken2'"' >> /usr/bin/kyt/var2.txt
 echo -e ADMIN2='"'$admin2'"' >> /usr/bin/kyt/var2.txt
 clear
+
+# Menambahkan perintah untuk menghapus dan membuat ulang file .bot.db
+rm -rf /etc/bot/.bot2.db
+touch /etc/bot/.bot2.db
 
 if [[ ${c} != "0" ]]; then
   echo "${d}" >/etc/bot/${bottoken2}
