@@ -39,7 +39,26 @@ function send_log() {
     DATEVPS=$(date +'%d/%m/%Y')
     TIMEZONE=$(date +"%H:%M %Z")
     status="$1"
-    TEXT="
+
+    if [ "$status" == "🟢 🔓ACCOUNT UNLOCKED🔓 🟢" ]; then
+        TEXT="
+<code>──────────────────────────────</code>
+<b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
+<code>──────────────────────────────</code>
+<code>❖ » USER   : ${user}</code>
+<code>❖ » ISP    : ${isp}</code>
+<code>❖ » DOMAIN : ${domain}</code>
+<code>❖ » PATH   : ${protocol}</code>
+<code>❖ » TIME   : ${TIMEZONE}</code>
+<code>❖ » DATE   : ${DATEVPS}</code>
+<code>──────────────────────────────</code>
+<code>❖ » LIMIT  : ${iplimit} IP</code>
+<code>──────────────────────────────</code>
+<code>❖ » ${status}</code>
+<code>──────────────────────────────</code>
+"
+    else
+        TEXT="
 <code>──────────────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
 <code>──────────────────────────────</code>
@@ -53,12 +72,14 @@ function send_log() {
 <code>❖ » LIMIT  : ${iplimit} IP</code>
 <code>❖ » LOGIN  : ${cekcek} IP</code>
 <code>──────────────────────────────</code>
-<code>❖ » DETAIL IP LOGIN</code>
+<code>❖ » DETAIL ${cekcek} IP LOGIN</code>
 $(echo -e "$ehh" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')
 <code>──────────────────────────────</code>
 <code>❖ » ${status}</code>
 <code>──────────────────────────────</code>
 "
+    fi
+
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
     curl -s --max-time $TIME -d "chat_id=$CHATID2&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL2 >/dev/null
 }
