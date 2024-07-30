@@ -6,21 +6,8 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # ꧁༒༺𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆༻༒꧂
 
-LOCK_FILE="/tmp/multi_login_lock"
 CHECK_INTERVAL=300  # Script By :
 WAIT_TIME=900       # ꧁༒༺𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆༻༒꧂
-
-function is_locked() {
-    [[ -e "$LOCK_FILE" ]]
-}
-
-function lock() {
-    touch "$LOCK_FILE"
-}
-
-function unlock() {
-    rm -f "$LOCK_FILE"
-}
 
 function send_log() {
     # First bot configuration
@@ -40,7 +27,7 @@ function send_log() {
     TIMEZONE=$(date +"%H:%M %Z")
     status="$1"
 
-    if [ "$status" == "🟢 🔓ACCOUNT UNLOCKED🔓 🟢" ]; then
+    if [ "$status" == "🟢🔓ACCOUNT UNLOCKED🔓🟢" ]; then
         TEXT="
 <code>──────────────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
@@ -137,61 +124,39 @@ function check_user() {
             backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
             systemctl restart xray >> /dev/null 2>&1
             rm -rf "$ip_limit_dir/$user"
-            send_log "🔴 🔒ACCOUNT LOCKED🔒 🔴"
-            sleep $WAIT_TIME
-            restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir"
-            systemctl restart xray >> /dev/null 2>&1
-            send_log "🟢 🔓ACCOUNT UNLOCKED🔓 🟢"
+            send_log "🔴🔒ACCOUNT LOCKED🔒🔴"
+            (
+                sleep $WAIT_TIME
+                restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir"
+                systemctl restart xray >> /dev/null 2>&1
+                send_log "🟢🔓ACCOUNT UNLOCKED🔓🟢"
+            ) &
         fi
-        sleep 0.1
     done
 }
 
 function vmip() {
-    if is_locked; then
-        echo "Another process is already running. Exiting..."
-        exit 1
-    fi
-    lock
-
     echo -n > /var/log/xray/access.log
     sleep 10
     check_user "vmess" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
-
-    unlock
 }
 
 function vlip() {
-    if is_locked; then
-        echo "Another process is already running. Exiting..."
-        exit 1
-    fi
-    lock
-
     echo -n > /var/log/xray/access.log
     sleep 10
     check_user "vless" "/etc/xray/config.json" "/etc/vless/.vless.db"
-
-    unlock
 }
 
 function trip() {
-    if is_locked; then
-        echo "Another process is already running. Exiting..."
-        exit 1
-    fi
-    lock
-
     echo -n > /var/log/xray/access.log
     sleep 10
     check_user "trojan" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
-
-    unlock
 }
 
 while true; do
-    vmip
-    vlip
-    trip
+    vmip &
+    vlip &
+    trip &
+    wait
     sleep $CHECK_INTERVAL
 done
