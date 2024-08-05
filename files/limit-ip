@@ -6,17 +6,17 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # ꧁༒༺𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆༻༒꧂
 
-CHECK_INTERVAL=300  # Script By :
-WAIT_TIME=900       # ꧁༒༺𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆༻༒꧂
+CHECK_INTERVAL=300  # Interval pengecekan dalam detik
+WAIT_TIME=900       # Waktu tunggu untuk pemulihan user dalam detik
 
 function send_log() {
-    # First bot configuration
+    # Konfigurasi bot pertama
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
     TIME="10"
     URL="https://api.telegram.org/bot$KEY/sendMessage"
 
-    # Second bot configuration
+    # Konfigurasi bot kedua
     CHATID2=$(grep -E "^#bot2# " "/etc/bot/.bot2.db" | cut -d ' ' -f 3)
     KEY2=$(grep -E "^#bot2# " "/etc/bot/.bot2.db" | cut -d ' ' -f 2)
     URL2="https://api.telegram.org/bot$KEY2/sendMessage"
@@ -79,13 +79,13 @@ function backup_and_remove_user() {
     ip_limit_file=$5
     backup_dir="/tmp/${user}_backup"
 
-    # Backup the user configuration
+    # Backup konfigurasi user
     mkdir -p $backup_dir
     cp $config_file $backup_dir/config.json
     cp $db_file $backup_dir/db.json
     echo $iplimit > $backup_dir/iplimit
 
-    # Remove the user configuration
+    # Hapus konfigurasi user
     sed -i "/^### $user $exp/,/^},{/d" $config_file
     sed -i "/^### $user $exp/d" $db_file
 }
@@ -97,13 +97,13 @@ function restore_user() {
     ip_limit_dir=$4
     backup_dir="/tmp/${user}_backup"
 
-    # Restore the user configuration from the backup directory
+    # Pulihkan konfigurasi user dari direktori backup
     cp $backup_dir/config.json $config_file
     cp $backup_dir/db.json $db_file
     iplimit=$(cat $backup_dir/iplimit)
     echo $iplimit > $ip_limit_dir/$user
 
-    # Remove the backup directory
+    # Hapus direktori backup
     rm -rf $backup_dir
 }
 
