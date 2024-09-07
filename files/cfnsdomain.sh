@@ -1,8 +1,8 @@
 #!/bin/bash
-DOMAIN="r32wrtxtunneling.site"
+DOMAIN="vpscloud.web.id"
 DAOMIN=$(cat /etc/xray/domain)
 SUB=$(tr </dev/urandom -dc a-z0-9 | head -c4)
-SUB_DOMAIN=${SUB}."r32wrtxtunneling.site"
+SUB_DOMAIN=${SUB}."vpscloud.web.id"
 NS_DOMAIN=ns.${SUB_DOMAIN}
 CF_ID=amandafitrizharifa009@gmail.com
 CF_KEY=3c45413104a3c39f1db9dff20acb3a99d7610
