@@ -14,7 +14,7 @@ clear
 read -rp "Input Domain Name. Example ( CONTOH : ngewe-gaya69 ) Bebas Mau Isi Apa: " -e sub
 subsl=$(</dev/urandom tr -dc a-z0-9 | head -c5)
 DOMAIN=r32wrtxtunneling.site
-SUB_DOMAIN=pro-${sub}.r32wrtxtunneling.site
+SUB_DOMAIN=vvip-${sub}.vpscloud.web.id
 NS_DOMAIN=dns-${subsl}.r32wrtxtunneling.site
 CF_ID=amandafitrizharifa009@gmail.com
 CF_KEY=3c45413104a3c39f1db9dff20acb3a99d7610
