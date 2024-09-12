@@ -17,6 +17,7 @@ function send_log() {
     local cekcek=$4
     local status=$5
     local detail_ips=$6
+    local show_details=$7  # Argumen baru untuk menentukan apakah menampilkan detail IP atau tidak
 
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
@@ -36,7 +37,9 @@ function send_log() {
     # Menghitung jumlah log user
     log_user=$(grep "$user" /var/log/xray/access.log | wc -l)
 
-    TEXT="
+    # Menentukan format teks untuk notifikasi
+    if [[ "$show_details" == "true" ]]; then
+        TEXT="
 <code>──────────────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
 <code>──────────────────────────────</code>
@@ -57,6 +60,26 @@ ${detail_ips}
 <code>❖ » ${status}</code>
 <code>──────────────────────────────</code>
 "
+    else
+        TEXT="
+<code>──────────────────────────────</code>
+<b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
+<code>──────────────────────────────</code>
+<code>❖ » USER   : ${user}</code>
+<code>❖ » ISP    : ${isp}</code>
+<code>❖ » DOMAIN : ${domain}</code>
+<code>❖ » PATH   : ${protocol}</code>
+<code>❖ » TIME   : ${TIMEZONE}</code>
+<code>❖ » DATE   : ${DATEVPS}</code>
+<code>❖ » LOG    : ${log_user}</code>
+<code>──────────────────────────────</code>
+<code>❖ » LIMIT  : ${iplimit} IP</code>
+<code>❖ » LOGIN  : ${cekcek} IP</code>
+<code>──────────────────────────────</code>
+<code>❖ » ${status}</code>
+<code>──────────────────────────────</code>
+"
+    fi
 
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
     curl -s --max-time $TIME -d "chat_id=$CHATID2&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL2 >/dev/null
@@ -145,12 +168,12 @@ function check_user() {
                 backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
                 systemctl restart xray >> /dev/null 2>&1
                 rm -rf "$ip_limit_dir/$user"
-                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴" "$detail_ips"
+                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴" "$detail_ips" "true"
                 (
                     sleep $WAIT_TIME
                     restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
                     systemctl restart xray >> /dev/null 2>&1
-                    send_log "$protocol" "$user" "$iplimit" "$cekcek" "🟢🔓ACCOUNT UNLOCKED🔓🟢" "$detail_ips"
+                    send_log "$protocol" "$user" "$iplimit" "$cekcek" "🟢🔓ACCOUNT UNLOCKED🔓🟢" "" "false"
                 ) &
             fi
         fi
