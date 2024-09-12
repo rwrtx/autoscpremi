@@ -8,8 +8,21 @@
 
 CHECK_INTERVAL=300  # Interval pengecekan dalam detik
 WAIT_TIME=900       # Waktu tunggu untuk pemulihan user dalam detik
+VIOLATION_THRESHOLD=15  # Jumlah pelanggaran sebelum penghapusan permanen
+VIOLATION_WINDOW=10800  # Jangka waktu pelanggaran dalam detik (3 jam)
+
+# File untuk mencatat pelanggaran
+LOG_FILE="/var/log/xray/violations.log"
+mkdir -p $(dirname $LOG_FILE)
+touch $LOG_FILE
 
 function send_log() {
+    local protocol=$1
+    local user=$2
+    local iplimit=$3
+    local cekcek=$4
+    local status=$5
+
     # Konfigurasi bot pertama
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
@@ -25,10 +38,9 @@ function send_log() {
     domain=$(cat /etc/xray/domain)
     DATEVPS=$(date +'%d/%m/%Y')
     TIMEZONE=$(date +"%H:%M %Z")
-    status="$1"
 
     if [ "$status" == "🟢🔓ACCOUNT UNLOCKED🔓🟢" ]; then
-        TEXT="
+        TEXT="\
 <code>──────────────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
 <code>──────────────────────────────</code>
@@ -42,10 +54,9 @@ function send_log() {
 <code>❖ » LIMIT  : ${iplimit} IP</code>
 <code>──────────────────────────────</code>
 <code>❖ » ${status}</code>
-<code>──────────────────────────────</code>
-"
+<code>──────────────────────────────</code>"
     else
-        TEXT="
+        TEXT="\
 <code>──────────────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
 <code>──────────────────────────────</code>
@@ -63,74 +74,103 @@ function send_log() {
 $(echo -e "$ehh" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')
 <code>──────────────────────────────</code>
 <code>❖ » ${status}</code>
-<code>──────────────────────────────</code>
-"
+<code>──────────────────────────────</code>"
     fi
 
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
     curl -s --max-time $TIME -d "chat_id=$CHATID2&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL2 >/dev/null
 }
 
-function backup_and_remove_user() {
-    exp=$1
-    user=$2
-    config_file=$3
-    db_file=$4
-    ip_limit_file=$5
-    backup_dir="/tmp/${user}_backup"
+function log_violation() {
+    local user=$1
+    local timestamp=$(date +%s)
+    echo "$timestamp $user" >> $LOG_FILE
+}
 
-    # Backup konfigurasi user
+function check_violations() {
+    local user=$1
+    local current_time=$(date +%s)
+    local cutoff_time=$((current_time - VIOLATION_WINDOW))
+
+    local violations=$(grep "$user" $LOG_FILE | awk -v cutoff=$cutoff_time '$1 >= cutoff' | wc -l)
+    if [ "$violations" -ge "$VIOLATION_THRESHOLD" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+function backup_and_remove_user() {
+    local exp=$1
+    local user=$2
+    local config_file=$3
+    local db_file=$4
+    local ip_limit_file=$5
+    local backup_dir="/tmp/${user}_backup"
+
     mkdir -p $backup_dir
     cp $config_file $backup_dir/config.json
     cp $db_file $backup_dir/db.json
     echo $iplimit > $backup_dir/iplimit
 
-    # Hapus konfigurasi user
     sed -i "/^### $user $exp/,/^},{/d" $config_file
     sed -i "/^### $user $exp/d" $db_file
 }
 
 function restore_user() {
-    user=$1
-    config_file=$2
-    db_file=$3
-    ip_limit_dir=$4
-    backup_dir="/tmp/${user}_backup"
+    local user=$1
+    local config_file=$2
+    local db_file=$3
+    local ip_limit_dir=$4
+    local backup_dir="/tmp/${user}_backup"
 
-    # Pulihkan konfigurasi user dari direktori backup
     cp $backup_dir/config.json $config_file
     cp $backup_dir/db.json $db_file
     iplimit=$(cat $backup_dir/iplimit)
     echo $iplimit > $ip_limit_dir/$user
 
-    # Hapus direktori backup
     rm -rf $backup_dir
+    sed -i "/$user/d" $LOG_FILE
 }
 
 function check_user() {
-    protocol=$1
-    config_file=$2
-    db_file=$3
-    ip_limit_dir="/etc/kyt/limit/$protocol/ip"
+    local protocol=$1
+    local config_file=$2
+    local db_file=$3
+    local ip_limit_dir="/etc/kyt/limit/$protocol/ip"
 
     data=( $(ls $ip_limit_dir) )
     for user in "${data[@]}"; do
         iplimit=$(cat "$ip_limit_dir/$user")
         ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq | grep -v "^127.0.0.1$")
         cekcek=$(echo -e "$ehh" | wc -l)
+
         if [[ $cekcek -gt $iplimit ]]; then
-            exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
-            uuid=$(grep -A 1 "^### $user $exp" $config_file | grep 'id' | cut -d '"' -f 4)
-            backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
-            systemctl restart xray >> /dev/null 2>&1
-            rm -rf "$ip_limit_dir/$user"
-            send_log "🔴🔒ACCOUNT LOCKED🔒🔴"
-            (
-                sleep $WAIT_TIME
-                restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir"
+            log_violation "$user"
+
+            if check_violations "$user"; then
+                exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
+                backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
                 systemctl restart xray >> /dev/null 2>&1
-                send_log "🟢🔓ACCOUNT UNLOCKED🔓🟢"
-            ) &
+                rm -rf "$ip_limit_dir/$user"
+                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴"
+
+                (
+                    sleep $WAIT_TIME
+                    restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir"
+                    systemctl restart xray >> /dev/null 2>&1
+                    send_log "$protocol" "$user" "$iplimit" "$cekcek" "🟢🔓ACCOUNT UNLOCKED🔓🟢"
+                ) &
+            else
+                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴"
+                
+                (
+                    sleep $WAIT_TIME
+                    restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir"
+                    systemctl restart xray >> /dev/null 2>&1
+                    send_log "$protocol" "$user" "$iplimit" "$cekcek" "🟢🔓ACCOUNT UNLOCKED🔓🟢"
+                ) &
+            fi
         fi
     done
 }
