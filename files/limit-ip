@@ -10,7 +10,6 @@ function send_log() {
     local iplimit=$3
     local cekcek=$4
     local status=$5
-    local violation_details=$6
 
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
@@ -27,6 +26,9 @@ function send_log() {
     DATEVPS=$(date +'%d/%m/%Y')
     TIMEZONE=$(date +"%H:%M %Z")
 
+    # Menghitung jumlah log user
+    log_user=$(grep "$user" /var/log/xray/access.log | wc -l)
+
     TEXT="
 <code>──────────────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
@@ -37,12 +39,12 @@ function send_log() {
 <code>❖ » PATH   : ${protocol}</code>
 <code>❖ » TIME   : ${TIMEZONE}</code>
 <code>❖ » DATE   : ${DATEVPS}</code>
+<code>❖ » LOG    : ${log_user}</code>
 <code>──────────────────────────────</code>
-<code>❖ » LIMIT  : ${iplimit} IP</code>
 <code>❖ » LOGIN  : ${cekcek} IP</code>
+<code>❖ » LIMIT  : ${iplimit} IP</code>
 <code>──────────────────────────────</code>
 <code>❖ » DETAIL ${cekcek} IP LOGIN</code>
-${violation_details}
 <code>──────────────────────────────</code>
 <code>❖ » ${status}</code>
 <code>──────────────────────────────</code>
@@ -132,12 +134,12 @@ function check_user() {
                 backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
                 systemctl restart xray >> /dev/null 2>&1
                 rm -rf "$ip_limit_dir/$user"
-                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴" "$(echo -e "$violations" | sort | uniq -c | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')"
+                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴"
                 (
                     sleep $WAIT_TIME
                     restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
                     systemctl restart xray >> /dev/null 2>&1
-                    send_log "$protocol" "$user" "$iplimit" "$cekcek" "🟢🔓ACCOUNT UNLOCKED🔓🟢" "$(echo -e "$violations" | sort | uniq -c | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')"
+                    send_log "$protocol" "$user" "$iplimit" "$cekcek" "🟢🔓ACCOUNT UNLOCKED🔓🟢"
                 ) &
             fi
         fi
