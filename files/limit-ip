@@ -1,20 +1,8 @@
 #!/bin/bash
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# System Request : Debian 9+/Ubuntu 18.04+/20+
-# Developers » 𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆
-# telegram   » https://t.me/R32WRT_STORE
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# ꧁༒༺𝐑𝟑𝟐𝐖𝐑𝐓𝐱𝐓𝐔𝐍𝐍𝐄𝐋𝐈𝐍𝐆༻༒꧂
 
 CHECK_INTERVAL=300  # Interval pengecekan dalam detik
 WAIT_TIME=900       # Waktu tunggu untuk pemulihan user dalam detik
-VIOLATION_THRESHOLD=15  # Jumlah pelanggaran sebelum penghapusan permanen
-VIOLATION_WINDOW=10800  # Jangka waktu pelanggaran dalam detik (3 jam)
-
-# File untuk mencatat pelanggaran
-LOG_FILE="/var/log/xray/violations.log"
-mkdir -p $(dirname $LOG_FILE)
-touch $LOG_FILE
+VIOLATION_LIMIT=20  # Batas jumlah pelanggaran sebelum penghapusan
 
 function send_log() {
     local protocol=$1
@@ -22,8 +10,8 @@ function send_log() {
     local iplimit=$3
     local cekcek=$4
     local status=$5
+    local violation_details=$6
 
-    # Konfigurasi bot pertama
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
     TIME="10"
@@ -39,24 +27,7 @@ function send_log() {
     DATEVPS=$(date +'%d/%m/%Y')
     TIMEZONE=$(date +"%H:%M %Z")
 
-    if [ "$status" == "🟢🔓ACCOUNT UNLOCKED🔓🟢" ]; then
-        TEXT="\
-<code>──────────────────────────────</code>
-<b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
-<code>──────────────────────────────</code>
-<code>❖ » USER   : ${user}</code>
-<code>❖ » ISP    : ${isp}</code>
-<code>❖ » DOMAIN : ${domain}</code>
-<code>❖ » PATH   : ${protocol}</code>
-<code>❖ » TIME   : ${TIMEZONE}</code>
-<code>❖ » DATE   : ${DATEVPS}</code>
-<code>──────────────────────────────</code>
-<code>❖ » LIMIT  : ${iplimit} IP</code>
-<code>──────────────────────────────</code>
-<code>❖ » ${status}</code>
-<code>──────────────────────────────</code>"
-    else
-        TEXT="\
+    TEXT="
 <code>──────────────────────────────</code>
 <b>⚠️ NOTIFICATIONS MULTI LOGIN ⚠️</b>
 <code>──────────────────────────────</code>
@@ -71,11 +42,11 @@ function send_log() {
 <code>❖ » LOGIN  : ${cekcek} IP</code>
 <code>──────────────────────────────</code>
 <code>❖ » DETAIL ${cekcek} IP LOGIN</code>
-$(echo -e "$ehh" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')
+${violation_details}
 <code>──────────────────────────────</code>
 <code>❖ » ${status}</code>
-<code>──────────────────────────────</code>"
-    fi
+<code>──────────────────────────────</code>
+"
 
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
     curl -s --max-time $TIME -d "chat_id=$CHATID2&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL2 >/dev/null
@@ -83,21 +54,25 @@ $(echo -e "$ehh" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')
 
 function log_violation() {
     local user=$1
-    local timestamp=$(date +%s)
-    echo "$timestamp $user" >> $LOG_FILE
+    local ip=$2
+    local log_file="/var/log/xray/violations_${user}.log"
+
+    echo "$(date +'%Y-%m-%d %H:%M:%S') - $ip" >> $log_file
 }
 
 function check_violations() {
     local user=$1
-    local current_time=$(date +%s)
-    local cutoff_time=$((current_time - VIOLATION_WINDOW))
+    local ip_limit_file=$2
+    local violation_limit=$3
 
-    local violations=$(grep "$user" $LOG_FILE | awk -v cutoff=$cutoff_time '$1 >= cutoff' | wc -l)
-    if [ "$violations" -ge "$VIOLATION_THRESHOLD" ]; then
+    local log_file="/var/log/xray/violations_${user}.log"
+    local count=$(grep "$(date +'%Y-%m-%d')" $log_file | wc -l)
+
+    if [[ $count -ge $violation_limit ]]; then
+        echo "User $user has exceeded $violation_limit violations today."
         return 0
-    else
-        return 1
     fi
+    return 1
 }
 
 function backup_and_remove_user() {
@@ -111,7 +86,7 @@ function backup_and_remove_user() {
     mkdir -p $backup_dir
     cp $config_file $backup_dir/config.json
     cp $db_file $backup_dir/db.json
-    echo $iplimit > $backup_dir/iplimit
+    cp $ip_limit_file $backup_dir/iplimit
 
     sed -i "/^### $user $exp/,/^},{/d" $config_file
     sed -i "/^### $user $exp/d" $db_file
@@ -121,16 +96,14 @@ function restore_user() {
     local user=$1
     local config_file=$2
     local db_file=$3
-    local ip_limit_dir=$4
+    local ip_limit_file=$4
     local backup_dir="/tmp/${user}_backup"
 
     cp $backup_dir/config.json $config_file
     cp $backup_dir/db.json $db_file
-    iplimit=$(cat $backup_dir/iplimit)
-    echo $iplimit > $ip_limit_dir/$user
+    cp $backup_dir/iplimit $ip_limit_file
 
     rm -rf $backup_dir
-    sed -i "/$user/d" $LOG_FILE
 }
 
 function check_user() {
@@ -139,36 +112,32 @@ function check_user() {
     local db_file=$3
     local ip_limit_dir="/etc/kyt/limit/$protocol/ip"
 
-    data=( $(ls $ip_limit_dir) )
+    local data=( $(ls $ip_limit_dir) )
     for user in "${data[@]}"; do
-        iplimit=$(cat "$ip_limit_dir/$user")
-        ehh=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq | grep -v "^127.0.0.1$")
-        cekcek=$(echo -e "$ehh" | wc -l)
+        local iplimit=$(cat "$ip_limit_dir/$user")
+        local violations=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq | grep -v "^127.0.0.1$")
+        local cekcek=$(echo -e "$violations" | wc -l)
 
         if [[ $cekcek -gt $iplimit ]]; then
-            log_violation "$user"
+            local exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
+            local uuid=$(grep -A 1 "^### $user $exp" $config_file | grep 'id' | cut -d '"' -f 4)
 
-            if check_violations "$user"; then
-                exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
+            # Log violations
+            for ip in $(echo -e "$violations" | sort | uniq); do
+                log_violation "$user" "$ip"
+            done
+
+            # Check for excess violations
+            if check_violations "$user" "$ip_limit_dir/$user" $VIOLATION_LIMIT; then
                 backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
                 systemctl restart xray >> /dev/null 2>&1
                 rm -rf "$ip_limit_dir/$user"
-                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴"
-
+                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴" "$(echo -e "$violations" | sort | uniq -c | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')"
                 (
                     sleep $WAIT_TIME
-                    restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir"
+                    restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
                     systemctl restart xray >> /dev/null 2>&1
-                    send_log "$protocol" "$user" "$iplimit" "$cekcek" "🟢🔓ACCOUNT UNLOCKED🔓🟢"
-                ) &
-            else
-                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴"
-                
-                (
-                    sleep $WAIT_TIME
-                    restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir"
-                    systemctl restart xray >> /dev/null 2>&1
-                    send_log "$protocol" "$user" "$iplimit" "$cekcek" "🟢🔓ACCOUNT UNLOCKED🔓🟢"
+                    send_log "$protocol" "$user" "$iplimit" "$cekcek" "🟢🔓ACCOUNT UNLOCKED🔓🟢" "$(echo -e "$violations" | sort | uniq -c | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')"
                 ) &
             fi
         fi
