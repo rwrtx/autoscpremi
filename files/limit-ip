@@ -1,33 +1,40 @@
 #!/bin/bash
 
-TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
-TELEGRAM_CHAT_ID="your-telegram-chat-id"
-WAIT_TIME=900  # 15 minutes in seconds
-VIOLATION_LIMIT=5  # Batas pelanggaran yang diperbolehkan sebelum akun di-lock
-ip_limit_dir="/etc/kyt/limit"
+CHECK_INTERVAL=300  # Interval pengecekan dalam detik
+WAIT_TIME=900       # Waktu tunggu untuk pemulihan user dalam detik
+VIOLATION_LIMIT=20  # Batas jumlah pelanggaran sebelum penghapusan
 
-# Fungsi untuk mengambil ISP dari IP
-get_isp() {
+function get_isp() {
     local ip=$1
-    curl -s "https://ipinfo.io/${ip}/org" | cut -d " " -f 2- | sed -e 's/^"//' -e 's/"$//'
+    # Mengambil informasi ISP dari ipinfo.io
+    curl -s "https://ipinfo.io/${ip}/org" | sed 's/^.*: //'
 }
 
-# Fungsi untuk mencatat pelanggaran log IP
-log_violation() {
-    local user=$1
-    local ip=$2
-    echo "$(date +'%Y-%m-%d %H:%M:%S') | $user | $ip" >> /var/log/xray/ip_violation.log
-}
-
-# Fungsi untuk mengirim notifikasi Telegram
-send_log() {
+function send_log() {
     local protocol=$1
     local user=$2
     local iplimit=$3
     local cekcek=$4
-    local log_count=$5
-    local status=$6
-    local detail_ips=$7
+    local status=$5
+    local detail_ips=$6
+
+    CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
+    KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
+    TIME="10"
+    URL="https://api.telegram.org/bot$KEY/sendMessage"
+
+    # Konfigurasi bot kedua
+    CHATID2=$(grep -E "^#bot2# " "/etc/bot/.bot2.db" | cut -d ' ' -f 3)
+    KEY2=$(grep -E "^#bot2# " "/etc/bot/.bot2.db" | cut -d ' ' -f 2)
+    URL2="https://api.telegram.org/bot$KEY2/sendMessage"
+
+    isp=$(cat /etc/xray/isp)
+    domain=$(cat /etc/xray/domain)
+    DATEVPS=$(date +'%d/%m/%Y')
+    TIMEZONE=$(date +"%H:%M %Z")
+
+    # Menghitung jumlah log user
+    log_user=$(grep "$user" /var/log/xray/access.log | wc -l)
 
     if [ "$status" == "🟢🔓ACCOUNT UNLOCKED🔓🟢" ]; then
         TEXT="
@@ -40,7 +47,7 @@ send_log() {
 <code>❖ » PATH   : ${protocol}</code>
 <code>❖ » TIME   : ${TIMEZONE}</code>
 <code>❖ » DATE   : ${DATEVPS}</code>
-<code>❖ » LOG    : ${log_count}</code>  
+<code>❖ » LOG    : ${log_user}</code>
 <code>──────────────────────────────</code>
 <code>❖ » LIMIT  : ${iplimit} IP</code>
 <code>──────────────────────────────</code>
@@ -58,7 +65,7 @@ send_log() {
 <code>❖ » PATH   : ${protocol}</code>
 <code>❖ » TIME   : ${TIMEZONE}</code>
 <code>❖ » DATE   : ${DATEVPS}</code>
-<code>❖ » LOG    : ${log_count}</code>  
+<code>❖ » LOG    : ${log_user}</code>
 <code>──────────────────────────────</code>
 <code>❖ » LIMIT  : ${iplimit} IP</code>
 <code>❖ » LOGIN  : ${cekcek} IP</code>
@@ -71,52 +78,76 @@ $(echo -e "$detail_ips" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')
 "
     fi
 
-    # Kirim notifikasi ke Telegram
-    curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-        -d chat_id="$TELEGRAM_CHAT_ID" \
-        -d parse_mode="html" \
-        -d text="$TEXT"
+    curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+    curl -s --max-time $TIME -d "chat_id=$CHATID2&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL2 >/dev/null
 }
 
-# Fungsi untuk mem-backup dan menghapus user yang melanggar
-backup_and_remove_user() {
+function log_violation() {
+    local user=$1
+    local ip=$2
+    local log_file="/var/log/xray/violations_${user}.log"
+
+    echo "$(date +'%Y-%m-%d %H:%M:%S') - $ip" >> $log_file
+}
+
+function check_violations() {
+    local user=$1
+    local ip_limit_file=$2
+    local violation_limit=$3
+
+    local log_file="/var/log/xray/violations_${user}.log"
+    local count=$(grep "$(date +'%Y-%m-%d')" $log_file | wc -l)
+
+    if [[ $count -ge $violation_limit ]]; then
+        echo "User $user has exceeded $violation_limit violations today."
+        return 0
+    fi
+    return 1
+}
+
+function backup_and_remove_user() {
     local exp=$1
     local user=$2
     local config_file=$3
     local db_file=$4
-    local user_ip_limit_file=$5
+    local ip_limit_file=$5
+    local backup_dir="/tmp/${user}_backup"
 
-    # Backup user config dan hapus user
-    grep -w "^### $user" $config_file | grep $exp -A 2 >> /etc/kyt/backup/${user}_backup.conf
+    mkdir -p $backup_dir
+    cp $config_file $backup_dir/config.json
+    cp $db_file $backup_dir/db.json
+    cp $ip_limit_file $backup_dir/iplimit
+
     sed -i "/^### $user $exp/,/^},{/d" $config_file
     sed -i "/^### $user $exp/d" $db_file
 }
 
-# Fungsi untuk restore user
-restore_user() {
+function restore_user() {
     local user=$1
     local config_file=$2
     local db_file=$3
-    local user_ip_limit_file=$4
+    local ip_limit_file=$4
+    local backup_dir="/tmp/${user}_backup"
 
-    # Restore config dan remove IP limit
-    cat /etc/kyt/backup/${user}_backup.conf >> $config_file
-    rm -rf "$user_ip_limit_file"
+    cp $backup_dir/config.json $config_file
+    cp $backup_dir/db.json $db_file
+    cp $backup_dir/iplimit $ip_limit_file
+
+    rm -rf $backup_dir
 }
 
-# Fungsi utama untuk cek user dan pelanggaran
 function check_user() {
     local protocol=$1
     local config_file=$2
     local db_file=$3
+    local ip_limit_dir="/etc/kyt/limit/$protocol/ip"
 
-    local data=( $(ls $ip_limit_dir/$protocol/ip) )
+    local data=( $(ls $ip_limit_dir) )
     for user in "${data[@]}"; do
-        local iplimit=$(cat "$ip_limit_dir/$protocol/ip/$user")
-        local violations=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq | grep -v "^127.0.0.1$")
+        local iplimit=$(cat "$ip_limit_dir/$user")
+        local violations=$(grep "$user" /var/log/xray/access.log | cut -d " " -f 3 | sed 's/tcp://g' | cut -d ":" -f 1 | sort | uniq | grep -v "^127.0.0.1$")        
         local cekcek=$(echo -e "$violations" | wc -l)
         local detail_ips=""
-        local log_count=0
 
         if [[ $cekcek -gt $iplimit ]]; then
             local exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
@@ -126,35 +157,54 @@ function check_user() {
             for ip in $(echo -e "$violations" | sort | uniq); do
                 log_violation "$user" "$ip"
                 local isp=$(get_isp "$ip")
-                detail_ips+="<code>❖ » ${ip} ❖ » ${isp}</code>"
+                detail_ips+="<code>❖ » ${ip} ❖ » ${isp}</code>}"
             done
 
-            # Update jumlah log berdasarkan pelanggaran
-            log_count=$(grep -c "$user" /var/log/xray/access.log)
-
             # Check for excess violations
-            if check_violations "$user" "$ip_limit_dir/$protocol/ip/$user" $VIOLATION_LIMIT; then
-                # Backup dan hapus user
-                backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$protocol/ip/$user"
+            if check_violations "$user" "$ip_limit_dir/$user" $VIOLATION_LIMIT; then
+                backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
                 systemctl restart xray >> /dev/null 2>&1
-                rm -rf "$ip_limit_dir/$protocol/ip/$user"
-                
-                # Kirim notifikasi dengan log yang benar saat locked
-                send_log "$protocol" "$user" "$iplimit" "$cekcek" "$log_count" "🔴🔒ACCOUNT LOCKED🔒🔴" "$detail_ips"
-                
-                # Proses unlock user setelah 15 menit
+                rm -rf "$ip_limit_dir/$user"
+                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴" "$detail_ips"
                 (
                     sleep $WAIT_TIME
-                    restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir/$protocol/ip/$user"
+                    restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
                     systemctl restart xray >> /dev/null 2>&1
-                    
-                    # Kirim notifikasi dengan jumlah log saat unlock
-                    send_log "$protocol" "$user" "$iplimit" "$cekcek" "$log_count" "🟢🔓ACCOUNT UNLOCKED🔓🟢" ""
+                    send_log "$protocol" "$user" "$iplimit" "$cekcek" "🟢🔓ACCOUNT UNLOCKED🔓🟢" ""
                 ) &
             fi
         fi
     done
 }
 
-# Cek user untuk protokol vmess
-check_user "vmess" "/etc/xray/config.json" "/etc/xray/xray.db"
+function vmip() {
+    echo -n > /var/log/xray/access.log
+    sleep 10
+    check_user "vmess" "/etc/xray/config.json" "/etc/vmess/.vmess.db"
+}
+
+function vlip() {
+    echo -n > /var/log/xray/access.log
+    sleep 10
+    check_user "vless" "/etc/xray/config.json" "/etc/vless/.vless.db"
+}
+
+function trip() {
+    echo -n > /var/log/xray/access.log
+    sleep 10
+    check_user "trojan" "/etc/xray/config.json" "/etc/trojan/.trojan.db"
+}
+
+function ssip() {
+    echo -n > /var/log/xray/access.log
+    sleep 10
+    check_user "shadowsocks" "/etc/xray/config.json" "/etc/shadowsocks/.shadowsocks.db"
+}
+
+while true; do
+    vmip
+    vlip
+    trip
+    ssip
+    sleep $CHECK_INTERVAL
+done
