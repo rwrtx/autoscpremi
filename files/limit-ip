@@ -57,7 +57,7 @@ function send_log() {
 
     # Tambahkan detail IP hanya saat akun terkunci
     if [[ "$status" == "🔴🔒ACCOUNT LOCKED🔒🔴" ]]; then
-        TEXT+="<code>❖ » DETAIL ${cekcek} IP LOGIN</code>\n${detail_ips}\n"
+        TEXT+="<code>❖ » DETAIL ${cekcek} IP LOGIN</code><br>${detail_ips}<br>"
     fi
 
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
@@ -139,7 +139,7 @@ function check_user() {
             for ip in $(echo -e "$violations" | sort | uniq); do
                 log_violation "$user" "$ip"
                 local isp=$(get_isp "$ip")
-                detail_ips+="<code>❖ » ${ip}</code>\n<code>❖ » ${isp}</code>\n\n"
+                detail_ips+="<code>❖ » ${ip}</code><br><code>❖ » ${isp}</code><br><br>"
             done
 
             # Check for excess violations
