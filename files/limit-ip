@@ -51,12 +51,14 @@ function send_log() {
 <code>❖ » LIMIT  : ${iplimit} IP</code>
 <code>❖ » LOGIN  : ${cekcek} IP</code>
 <code>──────────────────────────────</code>
-<code>❖ » DETAIL ${cekcek} IP LOGIN</code>
-${detail_ips}
-<code>──────────────────────────────</code>
 <code>❖ » ${status}</code>
 <code>──────────────────────────────</code>
 "
+
+    # Tambahkan detail IP hanya saat akun terkunci
+    if [[ "$status" == "🔴🔒ACCOUNT LOCKED🔒🔴" ]]; then
+        TEXT+="<code>❖ » DETAIL ${cekcek} IP LOGIN</code>\n${detail_ips}\n"
+    fi
 
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
     curl -s --max-time $TIME -d "chat_id=$CHATID2&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL2 >/dev/null
