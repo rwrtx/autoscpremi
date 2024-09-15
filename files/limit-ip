@@ -73,6 +73,9 @@ function send_log() {
 <code>❖ » DETAIL ${cekcek} IP LOGIN</code>
 $(echo -e "$detail_ips" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')
 <code>──────────────────────────────</code>
+<code>❖ » DETAIL ${cekcek} ISP</code>
+$(echo -e "$name_isp" | sed 's/^/❖ » /' | sed 's/^/<code>/;s/$/<\/code>/')
+<code>──────────────────────────────</code>
 <code>❖ » ${status}</code>
 <code>──────────────────────────────</code>
 "
@@ -157,7 +160,8 @@ function check_user() {
             for ip in $(echo -e "$violations" | sort | uniq); do
                 log_violation "$user" "$ip"
                 local isp=$(get_isp "$ip")
-                detail_ips+="<code>❖ » ${ip} ❖ » ${isp}</code>}"
+                detail_ips+="<code>❖ » ${ip}</code>}"
+                name_isp+="<code>❖ » ${isp}</code>}"
             done
 
             # Check for excess violations
@@ -165,7 +169,7 @@ function check_user() {
                 backup_and_remove_user "$exp" "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
                 systemctl restart xray >> /dev/null 2>&1
                 rm -rf "$ip_limit_dir/$user"
-                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴" "$detail_ips"
+                send_log "$protocol" "$user" "$iplimit" "$cekcek" "🔴🔒ACCOUNT LOCKED🔒🔴" "$detail_ips" "$name_isp"
                 (
                     sleep $WAIT_TIME
                     restore_user "$user" "$config_file" "$db_file" "$ip_limit_dir/$user"
