@@ -38,7 +38,7 @@ Silahkan Pilih Dan Masukkan perintah dibawah untuk menginstall Autoscript Premiu
 ## INSTALL SCRIPT IPV4
 Script Repositori 1
 ```
-apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/repoid1-setup.sh && chmod +x repoid1-setup.sh && ./repoid1-setup.sh
+apt install -y && apt update -y && apt upgrade -y && wget -q https://raw.githubusercontent.com/rwrtx/autoscpremi/main/TomattoVPN.sh && chmod +x TomattoVPN.sh && ./TomattoVPN.sh
 ```
 
 or
