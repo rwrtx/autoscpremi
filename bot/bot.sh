@@ -71,6 +71,49 @@ END
 systemctl start kyt 
 systemctl enable kyt
 systemctl restart kyt
+clear
+loading() {
+  local pid=$1
+  local delay=0.1
+  local spin='-\|/'
+
+  while ps -p "$pid" > /dev/null; do
+    printf "[%c] " "$spin"
+    spin=${spin#?}${spin%"${spin#?}"}
+    sleep $delay
+    printf "\b\b\b\b\b\b"
+  done
+
+  printf "    \b\b\b\b"
+}
+echo -e " \033[1;97;41m     MENDOWNLOAD ASSET TAMBAHAN......    \033[0m"
+
+sleep 2 & loading $! & wget -q -O /media/log-install.txt "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/log-install.txt"
+
+sleep 2 & loading $! & wget -q -O /usr/bin/addnoobz "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/addnoobz.sh" && chmod +x /usr/bin/addnoobz
+
+sleep 2 & loading $! & wget -q -O /usr/bin/cek-ssh "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/cek-ssh.sh" && chmod +x /usr/bin/cek-ssh
+
+sleep 2 & loading $! & wget -q -O /usr/bin/cek-ss "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/cek-ss.sh" && chmod +x /usr/bin/cek-ss
+
+sleep 2 & loading $! & wget -q -O /usr/bin/cek-tr "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/cek-tr.sh" && chmod +x /usr/bin/cek-tr
+
+sleep 2 & loading $! & wget -q -O /usr/bin/cek-vless "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/cek-vless.sh" && chmod +x /usr/bin/cek-vless
+
+sleep 2 & loading $! & wget -q -O /usr/bin/cek-ws "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/cek-ws.sh" && chmod +x /usr/bin/cek-ws
+
+sleep 2 & loading $! & wget -q -O /usr/bin/del-vless "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/del-vless.sh" && chmod +x /usr/bin/del-vless
+
+sleep 2 & loading $! & wget -q -O /usr/bin/cek-noobz "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/cek-noobz.sh" && chmod +x /usr/bin/cek-noobz
+
+sleep 2 & loading $! & wget -q -O /usr/bin/cek-mws "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/cek-mws.sh" && chmod +x /usr/bin/cek-mws
+
+sleep 2 & loading $! & wget -q -O /usr/bin/cek-mvs "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/cek-mvs.sh" && chmod +x /usr/bin/cek-mvs
+
+sleep 2 & loading $! & wget -q -O /usr/bin/cek-mss "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/cek-mss.sh" && chmod +x /usr/bin/cek-mss
+
+sleep 2 & loading $! & wget -q -O /usr/bin/cek-mts "https://raw.githubusercontent.com/rwrtx/autoscpremi/main/ping/cek-mts.sh" && chmod +x /usr/bin/cek-mts
+clear
 cd /root
 rm -rf kyt.sh
 echo "Input Data Berhasil Diproses!"
