@@ -53,7 +53,7 @@ for user in "${data[@]}"; do
         lim=$(con "$byte")
 
         # Baca kuota pengguna atau tetapkan 0 jika file tidak ada
-        wey=$(<"/etc/limit/vless/${user}" 2>/dev/null || echo 0)
+        wey=$(<"/etc/kyt/limit/vless/${user}" 2>/dev/null || echo 0)
         gb=$(con "$wey")
 
         # Tampilkan informasi akun
