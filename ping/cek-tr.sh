@@ -46,7 +46,7 @@ for user in "${data[@]}"; do
         [[ -z "$lastlogin" ]] && lastlogin=$(grep -w "$user" /var/log/xray/access.log | tail -n 1 | awk '{print $2}')
 
         # Ambil batas IP, fallback jika file tidak ada atau kosong
-        iplimit=$(<"/etc/limit/trojan/ip/${user}" 2>/dev/null || echo "No limit")
+        iplimit=$(<"/etc/kyt/limit/trojan/ip/${user}" 2>/dev/null || echo "No limit")
 
         # Hitung jumlah IP login
         jum2=$(wc -l < /tmp/iptrojan.txt)
