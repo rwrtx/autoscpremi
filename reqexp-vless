@@ -1,0 +1,85 @@
+#!/bin/bash
+red='\e[1;31m'
+green='\e[0;32m'
+NC='\e[0m'
+
+clear
+
+# Mengecek jumlah klien yang ada
+NUMBER_OF_CLIENTS=$(grep -c -E "^### " "/etc/xray/vless.json")
+if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
+    clear
+    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "         Ubah Masa Aktif (VLESS)         \E[0m"
+    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo ""
+    echo "Tidak ada klien yang tersedia!"
+    echo ""
+    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo ""
+    read -n 1 -s -r -p "Tekan sembarang tombol untuk kembali ke menu"
+    menu
+fi
+
+clear
+echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e "         Ubah Masa Aktif (VLESS)         \E[0m"
+echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo ""
+grep -E "^### " "/etc/xray/vless.json" | cut -d ' ' -f 2-3 | column -t | sort | uniq
+echo ""
+echo -e "${red}Tekan enter untuk kembali ke menu${NC}"
+echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+read -rp "Masukkan Username: " user
+if [ -z $user ]; then
+    menu
+else
+    read -p "Masa Aktif Baru (hari): " masaaktif
+    read -p "Kuota Baru (GB): " Quota
+    read -p "Limit IP Baru: " iplim
+
+    # Update Limit IP
+    mkdir -p /etc/kyt/limit/vless/ip
+    echo ${iplim} > /etc/kyt/limit/vless/ip/${user}
+
+    # Update Kuota
+    if [ ! -e /etc/vless/ ]; then
+        mkdir -p /etc/vless/
+    fi
+
+    if [ -z ${Quota} ]; then
+        Quota="0"
+    fi
+
+    c=$(echo "${Quota}" | sed 's/[^0-9]*//g')
+    d=$((${c} * 1024 * 1024 * 1024))
+    if [[ ${c} != "0" ]]; then
+        echo "${d}" > /etc/vless/${user}
+    fi
+
+    # Hitung tanggal baru
+    exp4=$(date -d "$masaaktif days" +"%Y-%m-%d")
+
+    # Update masa aktif di config.json dan database
+    sed -i "/### $user/c\### $user $exp4" /etc/xray/vless.json
+    sed -i "/### $user/c\### $user $exp4" /etc/vless/.vless.db
+
+    # Restart layanan Xray
+    systemctl restart xray > /dev/null 2>&1
+
+    # Tampilkan hasil
+    clear
+    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo " Masa Aktif VLESS Berhasil Diatur"
+    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo ""
+    echo " Nama Pengguna : $user"
+    echo " Masa Aktif Baru: $exp4"
+    echo " Kuota Baru     : $Quota GB"
+    echo " Limit IP Baru  : $iplim"
+    echo ""
+    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo ""
+    read -n 1 -s -r -p "Tekan sembarang tombol untuk kembali ke menu"
+    menu
+fi
