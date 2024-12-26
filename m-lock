@@ -1,0 +1,153 @@
+#!/bin/bash
+
+green='\e[0;32m'
+red='\e[1;31m'
+NC='\e[0m'
+
+function send_notification() {
+    local protocol=$1
+    local user=$2
+    local status=$3
+
+    CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
+    KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
+    URL="https://api.telegram.org/bot$KEY/sendMessage"
+
+    TEXT="
+<code>──────────────────────────────</code>
+<b>⚠️ MANUAL ACCOUNT STATUS ⚠️</b>
+<code>──────────────────────────────</code>
+<code>❖ » USER   : ${user}</code>
+<code>❖ » PATH   : ${protocol}</code>
+<code>❖ » STATUS : ${status}</code>
+<code>──────────────────────────────</code>
+"
+
+    curl -s -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+}
+
+function lock_account() {
+    local protocol=$1
+    local config_file=$2
+    local db_file=$3
+    local ip_limit_dir="/etc/kyt/limit/${protocol}/ip"
+
+    read -rp "Masukkan username yang ingin dikunci: " user
+    if [ -z "$user" ]; then
+        echo -e "${red}Username tidak boleh kosong!${NC}"
+        exit 1
+    fi
+
+    local exp=$(grep -w "^### $user" "$config_file" | cut -d ' ' -f 3 | sort | uniq)
+    if [ -z "$exp" ]; then
+        echo -e "${red}User tidak ditemukan!${NC}"
+        exit 1
+    fi
+
+    # Backup dan hapus user
+    mkdir -p /tmp/${user}_backup
+    cp $config_file /tmp/${user}_backup/config.json
+    cp $db_file /tmp/${user}_backup/db.json
+    cp "$ip_limit_dir/$user" /tmp/${user}_backup/iplimit
+    sed -i "/^### $user $exp/,/^},{/d" $config_file
+    sed -i "/^### $user $exp/d" $db_file
+    rm -f "$ip_limit_dir/$user"
+
+    # Restart layanan
+    systemctl restart xray > /dev/null 2>&1
+
+    echo -e "${green}User ${user} berhasil dikunci!${NC}"
+    send_notification "$protocol" "$user" "🔴🔒ACCOUNT LOCKED🔒🔴"
+}
+
+function unlock_account() {
+    local protocol=$1
+    local config_file=$2
+    local db_file=$3
+    local ip_limit_dir="/etc/kyt/limit/${protocol}/ip"
+
+    read -rp "Masukkan username yang ingin dibuka kuncinya: " user
+    if [ -z "$user" ]; then
+        echo -e "${red}Username tidak boleh kosong!${NC}"
+        exit 1
+    fi
+
+    local backup_dir="/tmp/${user}_backup"
+    if [ ! -d "$backup_dir" ]; then
+        echo -e "${red}Backup untuk user ${user} tidak ditemukan!${NC}"
+        exit 1
+    fi
+
+    # Restore user
+    cp $backup_dir/config.json $config_file
+    cp $backup_dir/db.json $db_file
+    cp $backup_dir/iplimit "$ip_limit_dir/$user"
+    rm -rf $backup_dir
+
+    # Restart layanan
+    systemctl restart xray > /dev/null 2>&1
+
+    echo -e "${green}User ${user} berhasil dibuka kuncinya!${NC}"
+    send_notification "$protocol" "$user" "🟢🔓ACCOUNT UNLOCKED🔓🟢"
+}
+
+function menu_lock_unlock() {
+    echo -e "\n${green}Pilih jenis akun untuk lock/unlock:${NC}"
+    echo "1. VMess"
+    echo "2. VLESS"
+    echo "3. Trojan"
+    echo "4. Keluar"
+    echo -n "Pilihan Anda: "
+    read -r choice
+
+    case $choice in
+        1)
+            protocol="vmess"
+            config_file="/etc/xray/config.json"
+            db_file="/etc/vmess/.vmess.db"
+            ;;
+        2)
+            protocol="vless"
+            config_file="/etc/xray/config.json"
+            db_file="/etc/vless/.vless.db"
+            ;;
+        3)
+            protocol="trojan"
+            config_file="/etc/xray/config.json"
+            db_file="/etc/trojan/.trojan.db"
+            ;;
+        4)
+            echo -e "${green}Keluar...${NC}"
+            exit 0
+            ;;
+        *)
+            echo -e "${red}Pilihan tidak valid!${NC}"
+            menu_lock_unlock
+            ;;
+    esac
+
+    echo -e "\n${green}Pilih tindakan:${NC}"
+    echo "1. Lock"
+    echo "2. Unlock"
+    echo "3. Kembali ke menu utama"
+    echo -n "Pilihan Anda: "
+    read -r action
+
+    case $action in
+        1)
+            lock_account "$protocol" "$config_file" "$db_file"
+            ;;
+        2)
+            unlock_account "$protocol" "$config_file" "$db_file"
+            ;;
+        3)
+            menu_lock_unlock
+            ;;
+        *)
+            echo -e "${red}Pilihan tidak valid!${NC}"
+            menu_lock_unlock
+            ;;
+    esac
+}
+
+menu_lock_unlock
