@@ -1,30 +1,18 @@
 #!/bin/sh
 
-# ================= COLOR =================
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
+PATH="/usr/bin:/bin:$PATH"
 x=$(basename "$0")
 
 if [ $# -eq 0 ]; then
-  echo " ${BLUE}=====================================================${NC}"
-  echo " ${GREEN}  USAGE : ketik dec spasi namafile${NC}"
-  echo " ${BLUE}=====================================================${NC}"
+  echo "USAGE : dec <file>"
   exit 1
 fi
 
-PATH="/usr/bin:/bin:$PATH"
-
 set -C
 tmp=dec$$
-trap "rm -f $tmp; exit 1" HUP INT QUIT TERM
+trap 'rm -f "$tmp"; exit 1' HUP INT QUIT TERM
 
-res=0
-
-# cari tail
+# cari tail (SAMA seperti encrypt)
 tailcmd=""
 IFS=":"; for d in $PATH; do
   [ -x "$d/tail" ] && tailcmd="$d/tail" && break
@@ -33,15 +21,21 @@ IFS=" "
 
 [ -z "$tailcmd" ] && echo "tail tidak ditemukan" && exit 1
 
-case `echo test | $tailcmd -n +1 2>/dev/null` in
-test) tailcmd="$tailcmd -n";;
+case `echo foo | $tailcmd -n +1 2>/dev/null` in
+foo) tailcmd="$tailcmd -n";;
 esac
 
-for i do
-  [ ! -f "$i" ] && echo "$x: $i bukan file" && res=1 && continue
+res=0
 
-  # validasi skip
-  SKIP=$(grep -m1 '^skip=[0-9]\+' "$i" | cut -d= -f2)
+for i do
+  if [ ! -f "$i" ]; then
+    echo "$x: $i bukan file"
+    res=1
+    continue
+  fi
+
+  # === DETEKSI SKIP (WAJIB DINAMIS) ===
+  SKIP=$(sed -n '2p' "$i" | sed -n 's/^skip=\([0-9]\+\)$/\1/p')
 
   if [ -z "$SKIP" ]; then
     echo "$x: $i bukan file encrypt valid"
@@ -49,34 +43,32 @@ for i do
     continue
   fi
 
-  echo "${GREEN}[+] Decrypting $i${NC}"
+  echo "[+] Decrypt $i (skip=$SKIP)"
 
-  if ! $tailcmd +"$SKIP" "$i" | bzip2 -cd > "$tmp" 2>/dev/null; then
-    echo "${RED}[!] Gagal decrypt $i${NC}"
+  if ! $tailcmd +"$SKIP" "$i" | /bin/bzip2 -cd > "$tmp"; then
+    echo "[!] Gagal decompress $i"
     res=1
     continue
   fi
 
   chmod 700 "$tmp"
 
-  # backup encrypt
   rm -f "$i~"
   mv "$i" "$i~" || {
-    echo "$x: gagal backup $i"
+    echo "[!] Gagal backup $i"
     rm -f "$tmp"
     res=1
     continue
   }
 
-  # restore asli
   mv "$tmp" "$i" || cp "$tmp" "$i" || {
-    echo "$x: gagal restore $i"
+    echo "[!] Gagal restore $i"
     rm -f "$tmp"
     res=1
     continue
   }
 
-  echo "${GREEN}[✓] Decrypt sukses : $i${NC}"
+  echo "[✓] Decrypt sukses: $i"
 done
 
 exit $res
