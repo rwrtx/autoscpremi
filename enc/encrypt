@@ -1,11 +1,11 @@
 #!/bin/sh
 # ============================================================
-# FULL DECRYPTER FOR BZIP2 SELF-EXTRACTING SHELL
+# FULL DECRYPTER - FIXED VERSION
 # Compatible with SANZ (2023) encrypt script
 # ============================================================
 
-if [ $# -lt 1 ]; then
-  echo "USAGE : ./decrypt.sh <file_encrypted>"
+if [ $# -ne 1 ]; then
+  echo "USAGE: $0 <encrypted_file>"
   exit 1
 fi
 
@@ -16,31 +16,27 @@ if [ ! -f "$FILE" ]; then
   exit 1
 fi
 
-# Ambil nilai skip dari baris ke-2
-SKIP_LINE=$(sed -n '2p' "$FILE")
+# Cari nilai skip
+SKIP=$(grep -m1 '^skip=[0-9]\+' "$FILE" | cut -d= -f2)
 
-case "$SKIP_LINE" in
-  skip=*)
-    eval "$SKIP_LINE"
-    ;;
-  *)
-    echo "[ERROR] File ini bukan hasil encrypt yang valid"
-    exit 1
-    ;;
-esac
+if [ -z "$SKIP" ]; then
+  echo "[ERROR] Tidak ditemukan nilai skip"
+  echo "File ini kemungkinan BUKAN hasil encrypt"
+  exit 1
+fi
 
-OUTFILE="${FILE}.decrypted"
+OUT="${FILE}.decrypted"
 
-echo "[INFO] Skip baris: $skip"
+echo "[INFO] Skip baris : $SKIP"
 echo "[INFO] Decrypting..."
 
-# Proses decrypt
-if tail -n +"$skip" "$FILE" | bzip2 -cd > "$OUTFILE"; then
-  chmod +x "$OUTFILE"
-  echo "[SUCCESS] Decrypt selesai"
-  echo "[OUTPUT ] $OUTFILE"
+# Decrypt payload
+if tail -n +"$SKIP" "$FILE" | bzip2 -cd > "$OUT" 2>/dev/null; then
+  chmod +x "$OUT"
+  echo "[SUCCESS] Decrypt berhasil"
+  echo "[OUTPUT ] $OUT"
 else
-  echo "[FAILED] Gagal decrypt file"
+  echo "[FAILED] Payload bukan bzip2 valid"
   exit 1
 fi
 
