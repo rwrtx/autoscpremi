@@ -1,43 +1,82 @@
 #!/bin/sh
-# ============================================================
-# FULL DECRYPTER - FIXED VERSION
-# Compatible with SANZ (2023) encrypt script
-# ============================================================
 
-if [ $# -ne 1 ]; then
-  echo "USAGE: $0 <encrypted_file>"
+# ================= COLOR =================
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+x=$(basename "$0")
+
+if [ $# -eq 0 ]; then
+  echo " ${BLUE}=====================================================${NC}"
+  echo " ${GREEN}  USAGE : ketik dec spasi namafile${NC}"
+  echo " ${BLUE}=====================================================${NC}"
   exit 1
 fi
 
-FILE="$1"
+PATH="/usr/bin:/bin:$PATH"
 
-if [ ! -f "$FILE" ]; then
-  echo "[ERROR] File tidak ditemukan"
-  exit 1
-fi
+set -C
+tmp=dec$$
+trap "rm -f $tmp; exit 1" HUP INT QUIT TERM
 
-# Cari nilai skip
-SKIP=$(grep -m1 '^skip=[0-9]\+' "$FILE" | cut -d= -f2)
+res=0
 
-if [ -z "$SKIP" ]; then
-  echo "[ERROR] Tidak ditemukan nilai skip"
-  echo "File ini kemungkinan BUKAN hasil encrypt"
-  exit 1
-fi
+# cari tail
+tailcmd=""
+IFS=":"; for d in $PATH; do
+  [ -x "$d/tail" ] && tailcmd="$d/tail" && break
+done
+IFS=" "
 
-OUT="${FILE}.decrypted"
+[ -z "$tailcmd" ] && echo "tail tidak ditemukan" && exit 1
 
-echo "[INFO] Skip baris : $SKIP"
-echo "[INFO] Decrypting..."
+case `echo test | $tailcmd -n +1 2>/dev/null` in
+test) tailcmd="$tailcmd -n";;
+esac
 
-# Decrypt payload
-if tail -n +"$SKIP" "$FILE" | bzip2 -cd > "$OUT" 2>/dev/null; then
-  chmod +x "$OUT"
-  echo "[SUCCESS] Decrypt berhasil"
-  echo "[OUTPUT ] $OUT"
-else
-  echo "[FAILED] Payload bukan bzip2 valid"
-  exit 1
-fi
+for i do
+  [ ! -f "$i" ] && echo "$x: $i bukan file" && res=1 && continue
 
-exit 0
+  # validasi skip
+  SKIP=$(grep -m1 '^skip=[0-9]\+' "$i" | cut -d= -f2)
+
+  if [ -z "$SKIP" ]; then
+    echo "$x: $i bukan file encrypt valid"
+    res=1
+    continue
+  fi
+
+  echo "${GREEN}[+] Decrypting $i${NC}"
+
+  if ! $tailcmd +"$SKIP" "$i" | bzip2 -cd > "$tmp" 2>/dev/null; then
+    echo "${RED}[!] Gagal decrypt $i${NC}"
+    res=1
+    continue
+  fi
+
+  chmod 700 "$tmp"
+
+  # backup encrypt
+  rm -f "$i~"
+  mv "$i" "$i~" || {
+    echo "$x: gagal backup $i"
+    rm -f "$tmp"
+    res=1
+    continue
+  }
+
+  # restore asli
+  mv "$tmp" "$i" || cp "$tmp" "$i" || {
+    echo "$x: gagal restore $i"
+    rm -f "$tmp"
+    res=1
+    continue
+  }
+
+  echo "${GREEN}[✓] Decrypt sukses : $i${NC}"
+done
+
+exit $res
